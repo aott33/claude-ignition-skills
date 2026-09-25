@@ -40,8 +40,19 @@ What an API key can do depends on its security levels matched against those list
 | Read-only inspection | Level in Access and Read, **not** Write | GETs return 200; POST scans return 403 |
 | Deploy (scans, resource writes) | Level in Access, Read and Write | POST scans return 200 |
 
+**API keys cannot hold role levels** **[live 8.3.9]**:
+- A key configured with `Authenticated/Roles/Administrator` is logged as "Security level 'Authenticated/Roles' cannot be granted via config and will be ignored", and gets 403.
+- Role levels come only from user logins. Give keys **custom levels** instead.
+- A fresh 8.3.9 Gateway's defaults are: Access `AllOf []` (anyone), Read and Write `AnyOf [Authenticated/Roles/Administrator]`. A key therefore needs a custom level added to Read (and Write for deploy keys).
+
+A pattern that worked **[live 8.3.9]**:
+- **Levels:** `Authenticated/ApiKeys/Deploy` and `Authenticated/ApiKeys/Reader`, defined in the `security-levels` resource. In a git-managed Gateway, keep that resource in `external`.
+- **Permissions:** `security-properties` grants Read to Deploy and Reader, and Write to Deploy. Keep it in the **mode** folder: a copy generated in `core` at first boot would override one in `external`, and first boot also rewrites the mode copy, so restore it from git after first boot (see `../../ignition-config/references/docker.md`).
+- **Where keys live:** in the `local` collection (`data/config/resources/local/ignition/api-token/<name>/{config.json,resource.json}`). Machine-specific and never committed.
+- **Key file format:** `config.json` holds `profile.type: "basic-token"`, `profile.securityLevels` and `settings.tokenHash = base64url(sha256(raw key bytes))`. The client sends `<name>:<base64url key>`. A new key takes effect after a config scan; the very first key needs a restart or the UI Scan File System button.
+
 Recipes:
-- Create one level per purpose, for example `apiReader` and `apiDeployer`, on Security > Levels.
+- Create one level per purpose, for example `ApiKeys/Reader` and `ApiKeys/Deploy`, on Security > Levels (not under `Roles`).
 - Give inspection tools and AI agents a key with the reader level only.
 - Give the deploy pipeline its own key with the deployer level, used only from CI or by a human running `/ignition-deploy`.
 - One key per tool or pipeline, so you can disable one without breaking others and so audit entries identify the caller.

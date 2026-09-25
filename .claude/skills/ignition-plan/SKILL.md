@@ -106,7 +106,7 @@ Use `references/prd-template.md`. Sections:
 - **Redundancy:** IA offers a cheaper backup-specific license for a dedicated backup server.
 - **Edge:** separate Edge license that only activates on Edge Gateways; Edge stores up to 35 days or 10 million points of history locally.
 - **Upgrades:** confirm the license is 8.3-ready before upgrading.
-- **Maker Edition** (free, non-commercial and personal use only): max 10 Perspective sessions and 10,000 tags; no Perspective Workstation; redundancy only in Independent mode; Vision not included; limited module list. Never plan a commercial project on Maker.
+- **Maker Edition** (free, non-commercial and personal use only): max 10 Perspective sessions and 10,000 tags; no Perspective Workstation; redundancy only in Independent mode; Vision not included; limited module list. Never plan a commercial project on Maker. Maker uses a **leased licence that needs internet access**: after the lease timeout (72 h for licences created from 20 July 2026) the Gateway reverts to trial mode, so plan for internet outages when Maker carries alerting. In Docker, do not set `GATEWAY_MODULES_ENABLED` on Maker (see `../ignition-config/references/docker.md`).
 
 ## Epic Ordering
 

@@ -149,6 +149,25 @@ Changing alarm colors then means editing one variable, not hundreds of component
 
 ---
 
+## Third-party design systems (example: OpenBridge)
+
+Perspective can adopt an external design system's **look** without its code:
+- **Colour tokens** become a custom Perspective theme (a folder with `config.json`, `resource.json`, `index.css`).
+- **Icons** become a Perspective icon library resource.
+- **Components** are rebuilt as parameterized embedded views or Drawing symbols.
+
+Web-component libraries (for example Lit) cannot run inside Perspective without a custom module built with the Ignition SDK.
+
+OpenBridge ([openbridge.no](https://www.openbridge.no/)) is a maritime and industrial design system with an Automation Library (pumps, valves, tanks, readouts) and bright, day, dusk and night palettes. Its principles match ISA-101: neutral palettes, colour for state and alarms, brightness modes for control rooms. From npm `@oicl/openbridge-webcomponents`:
+- palettes: `src/palettes/variables.css`, CSS variables per `data-obc-theme`, for example `--container-*`, `--element-*`, `--instrument-*`, `--alarm-*`;
+- icons: SVG strings in `src/icons/*.ts`;
+- symbols: `src/automation/`.
+
+Licensing:
+- Since 1.0.0, each release is AGPL-3.0-only for 180 days and then also Apache-2.0. JIP members can get a commercial licence earlier. Version 1.0.1 declares Apache-2.0.
+- Take assets only from a release you may use, keep its licence notice, and keep design-system assets out of anything you redistribute (for example an Ignition Exchange resource) unless the licence allows it.
+- Any alarm colour mapping is an alarm presentation change that needs engineering review.
+
 ## Sources
 
 - https://www.docs.inductiveautomation.com/docs/8.3/ignition-modules/perspective/styles

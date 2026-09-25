@@ -26,6 +26,15 @@ None of these is plaintext, but they are credential material. Before the first c
 
 Deployment modes pair well with layouts 2 and 4: keep one config set and let the active mode switch device and database targets per environment (see `collections-and-modes.md`).
 
+## Layout 2 in practice (tested on 8.3.9)
+
+A Docker Compose stack that booted cleanly from a fresh clone mounted three things:
+- `config/resources/external` (shared, versioned resources, with its `config-mode.json` manifest);
+- the active mode folder `config/resources/<mode>` (per-environment overrides, including `security-properties`);
+- `projects`.
+
+`core` stayed in the Docker volume and out of git: each Gateway generates its own, and a partially committed `core` caused missing defaults and load errors. Changes made in the Gateway web UI land in `core`, so move deliberate changes into `external` or a mode folder before committing. Mount details and first-boot behaviour: `docker.md`.
+
 ## Bootstrapping a second Gateway (layout 1)
 
 IA's sequence: install Ignition on the second machine **without starting the service**, delete its `data` directory, `git clone <repo> data`, then start the service. Never do this on a Gateway that holds anything you need; it replaces the whole data directory.

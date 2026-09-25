@@ -65,7 +65,7 @@ How files reach the Gateway depends on the repository layout (`../ignition-confi
 - **Curated mounts / multi-Gateway**: the container's bind-mounted folders are updated (pull on the host, or a GitOps controller syncs them).
 - **Other**: follow the team's documented mechanism.
 
-Ask the user which applies and who performs it. On a container with bind mounts, files must be owned by the Gateway's user (on a live 8.3.9 official image this was uid 2003) or the Gateway faults when it creates resource folders.
+Ask the user which applies and who performs it. On a container with bind mounts, files must be owned by the Gateway's user (on a live 8.3.9 official image this was uid 2003) or the Gateway faults when it creates resource folders. Alternatively run the Gateway as the repo owner with `IGNITION_UID`/`IGNITION_GID`, which needs the container to start as root; see `../ignition-config/references/docker.md`.
 
 ## Step 5: Scan and verify (CONFIRM before each POST)
 
