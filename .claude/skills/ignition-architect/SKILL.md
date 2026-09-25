@@ -172,11 +172,9 @@ No credential goes in a script, project resource or committed config. DB, device
 8. **Reports and dashboards.**
 9. **Promote** through deployment modes (dev → test → prod) per `../ignition-deploy/SKILL.md`.
 
-## ISA-88 Batch (when applicable)
+## Safety, Security and Batch
 
-Food and beverage, pharma, specialty chemicals only; not continuous processes. Procedural model Recipe → Procedure → Unit Procedure → Operation → Phase; equipment model Process Cell → Unit → Equipment Module → Control Module. See `references/isa-standards.md`.
-
-## Safety and Security
+- ISA-88 applies to batch processes only (food and beverage, pharma, specialty chemicals); models in `references/isa-standards.md`.
 
 - Flag any SIS scope and document the boundary; SCADA does not control SIS.
 - IT/OT zones: OT (L2), DMZ (L3.5, Gateway), business (L4-5). No cross-zone connection without explicit authorization.

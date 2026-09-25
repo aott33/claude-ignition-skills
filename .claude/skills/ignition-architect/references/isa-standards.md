@@ -1,5 +1,7 @@
 # ISA Standards Reference for Ignition Projects
 
+Applies to: Ignition 8.3.x
+
 Quick reference for the four ISA standards that govern professional Ignition SCADA/MES development.
 
 ---
@@ -12,9 +14,9 @@ Governs how operator interface screens should look and behave to reduce cognitiv
 
 **Gray backgrounds, color for abnormal only**
 - Background: neutral gray (`#808080` to `#888888` range)
-- Normal state: monochromatic — no green for running, no color for healthy
+- Normal state: monochromatic - no green for running, no color for healthy
 - Abnormal state: red for critical, yellow/amber for warning
-- Never use color to mean "good" — its absence of alarm is the signal
+- Never use color to mean "good" - its absence of alarm is the signal
 
 **Information density**
 - Display only what operators need for the current task
@@ -24,19 +26,19 @@ Governs how operator interface screens should look and behave to reduce cognitiv
 
 **Visual hierarchy**
 - Place critical information (alarms, key process values) in the upper-left quadrant
-- Use size, position, and contrast to establish importance — not color
+- Use size, position, and contrast to establish importance - not color
 - Consistent placement across all screens
 
 **Navigation**
 - Hierarchy-based navigation matching equipment structure (Site → Area → Equipment)
 - Role-appropriate access (operator, supervisor, engineer)
-- Consistent navigation elements on every screen — operators should never feel "lost"
+- Consistent navigation elements on every screen - operators should never feel "lost"
 
 **Alarm visualization**
 - Persistent alarm banner visible on all screens
 - Include: priority, timestamp, equipment context, acknowledgment status
 - High contrast against gray background
-- Blinking only for unacknowledged critical alarms (Priority 1)
+- Blinking only for unacknowledged Critical alarms
 
 **Screen types**
 | Type | Purpose |
@@ -112,12 +114,15 @@ Governs alarm system design, rationalization, and performance measurement for in
 
 ### Alarm Priority Levels
 
-| Priority | Name | Response Requirement | Visual |
-|---|---|---|---|
-| 1 | Critical | Immediate — safety impact | Red, blinking |
-| 2 | High | Urgent — within minutes | Red |
-| 3 | Medium | Within shift | Yellow |
-| 4 | Low | Awareness only | Yellow/cyan |
+Ignition alarm priorities are **Diagnostic, Low, Medium, High, Critical** (JSON values are the names). Map the rationalized scheme onto them by name, not by number:
+
+| Ignition priority | Response requirement | Visual |
+|---|---|---|
+| Critical | Immediate - safety impact | Red, blinking |
+| High | Urgent - within minutes | Red |
+| Medium | Within shift | Yellow |
+| Low | Awareness only | Yellow/cyan |
+| Diagnostic | Not presented to operators (maintenance / system events) | Not shown on operator displays |
 
 ### Alarm States
 
@@ -145,12 +150,20 @@ All state transitions must be logged for compliance.
 
 **Deadband:** Configure on analog alarms to prevent nuisance alarms from signal noise
 - Set as percentage of setpoint or absolute value
-- Example: temperature alarm at 80°C with 2°C deadband — re-arms only when temp drops below 78°C
+- Example: temperature alarm at 80°C with 2°C deadband - re-arms only when temp drops below 78°C
 
 **Shelving:** Temporary suppression during known conditions (maintenance, startup)
 - Must be time-limited (set maximum duration per project policy)
 - Must be logged with authorization level
 - Used for: equipment in maintenance mode, known transient conditions during startup
+
+**Shelving allowed:** set per alarm with the `shelvingAllowed` property; disable it on alarms that must never be shelved.
+
+**Alarm modes:** 8.3 adds `WhenTrue` / `WhenFalse` for Boolean (or non-zero integer) tags alongside `AboveValue`, `BelowValue`, `Bit` and the other modes.
+
+**Alarm Metrics:** per-priority counts such as `ActiveCountCritical` and `HasActiveUnackedHigh` live in the Alarm Metrics tag folder, which replaces the deprecated Alarms folder. Bind alarm summary indicators to these.
+
+**Engineering review:** every alarm priority, setpoint, mode, shelving or pipeline change is flagged for human engineering review; priority and interlock changes need MOC.
 
 **Alarm rationalization:** Every configured alarm should have documented:
 - Consequence if unacknowledged
@@ -167,23 +180,23 @@ Applies to: food & beverage, pharmaceuticals, specialty chemicals, cosmetics. Do
 ### Procedural Model
 
 ```
-Recipe          — product definition (what to make)
-  └─ Procedure  — overall sequence (how to make it)
-       └─ Unit Procedure  — operations on a single unit
-            └─ Operation  — major processing action (fill, heat, mix)
-                 └─ Phase — discrete step with defined states
+Recipe          - product definition (what to make)
+  └─ Procedure  - overall sequence (how to make it)
+       └─ Unit Procedure  - operations on a single unit
+            └─ Operation  - major processing action (fill, heat, mix)
+                 └─ Phase - discrete step with defined states
 ```
 
 ### Equipment Model
 
 ```
-Process Cell        — batch execution boundary
-  └─ Unit           — major equipment (reactor, tank)
-       └─ Equipment Module — physical equipment (agitator, jacket)
-            └─ Control Module — device (valve, motor, sensor)
+Process Cell        - batch execution boundary
+  └─ Unit           - major equipment (reactor, tank)
+       └─ Equipment Module - physical equipment (agitator, jacket)
+            └─ Control Module - device (valve, motor, sensor)
 ```
 
-Maps to UDT hierarchy — design UDT inheritance to reflect this structure.
+Maps to UDT hierarchy - design UDT inheritance to reflect this structure.
 
 ### Phase State Machine
 
@@ -201,7 +214,7 @@ Idle → Running ─────┼──── Holding ───→ Held
                     └──── Complete
 ```
 
-Implement state transitions in Jython using `system.tag.write()` calls.
+Implement state transitions in Jython with `system.tag.writeBlocking(tagPaths, values, [timeout])` (or `system.tag.writeAsync`), wrapped in `try` / `except java.lang.Throwable` / `except Exception`, and check the returned quality codes.
 
 ### Recipe Types
 
@@ -247,3 +260,13 @@ SIS systems (emergency shutdowns, safety interlocks) are:
 - Subject to SIL (Safety Integrity Level) certification
 
 Any design touching SIS scope requires certified safety engineer review and Management of Change (MOC) documentation.
+
+---
+
+## Sources
+
+- https://www.docs.inductiveautomation.com/docs/8.3/platform/tags/tag-properties/tag-alarm-properties
+- https://www.docs.inductiveautomation.com/docs/8.3/appendix/scripting-functions/system-tag/system-tag-writeBlocking
+- https://www.docs.inductiveautomation.com/docs/8.3/getting-started/installing-and-upgrading/ignition-8-upgrade-guide/81to83-upgrade-guide
+
+ISA-101, ISA-95, ISA-18.2, ISA-88 and IEC 62443 content summarizes the standards themselves, not IA documentation.

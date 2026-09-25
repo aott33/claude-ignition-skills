@@ -52,7 +52,7 @@ A container for validated, responsive input forms (text, number, dropdown, check
 - `autoDisable` disables Submit while the form is invalid or a submission is in progress; `resetOn` and `awaitResponse` control reset behavior.
 - Rows support `visibleWhen` / `enabledWhen` conditions.
 
-**HMI use:** shift logs, downtime reasons, quality checks, batch notes. For a single critical setpoint, a Numeric Entry Field plus confirm popup is still clearer. A Form Submission handler that writes to a database uses `system.db.execUpdate` with a Named Query and full exception handling (see `../ignition-dev/SKILL.md`), and is treated like any other write for safety review.
+**HMI use:** shift logs, downtime reasons, quality checks, batch notes. For a single critical setpoint, a Numeric Entry Field plus confirm popup is still clearer. A Form Submission handler that writes to a database uses `system.db.execUpdate` with a Named Query and full exception handling (see `../../ignition-dev/SKILL.md`), and is treated like any other write for safety review.
 
 ---
 
