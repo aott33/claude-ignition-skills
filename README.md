@@ -2,6 +2,8 @@
 
 A starter kit for using Claude Code on **Ignition 8.1 SCADA/MES** projects. No framework installs — just clone, open in Claude Code, and start building.
 
+> **On Ignition 8.1?** The 8.1 skills are frozen on the [`release/8.1`](https://github.com/aott33/claude-ignition-skills/tree/release/8.1) branch (tag `v8.1-final`). `main` is moving to Ignition 8.3; see [docs/upgrade-notes.md](docs/upgrade-notes.md).
+
 > **Platform:** Ignition 8.1, Perspective module only. Vision module projects require a separate skill set. Ignition 8.3 introduces breaking changes not covered here.
 
 ## The Problem
