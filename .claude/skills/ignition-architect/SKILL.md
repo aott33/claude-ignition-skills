@@ -103,7 +103,7 @@ The Tag Historian module is replaced by **Historian Core** (Core Historian on Qu
 
 | Historian | Choose when |
 |---|---|
-| **Core Historian** (QuestDB, embedded) | High-throughput local history; partitioning, dedup, archiving, native aggregation. Writes to its own WAL and does not use Store and Forward. Default memory is 10% of system RAM |
+| **Core Historian** (QuestDB, embedded) | High-throughput local history; partitioning, dedup, archiving, native aggregation. Store and Forward is used only when there are pending writes to the database; with none pending, the Core Historian skips it entirely. Default memory is 10% of system RAM |
 | **SQL Historian** (SQL Historian module) | History must sit in a SQL DB for reporting, external tools or long retention |
 | **Internal Historian (Legacy)** | Small or existing systems only; not for new designs |
 | **Remote Historian / Historian Splitter** | Spoke-to-hub storage, or writing to two providers during migration |

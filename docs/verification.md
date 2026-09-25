@@ -109,4 +109,42 @@ IA's list also does not exclude `data/config/ignition/keys/` (Secrets Management
 
 ## Knowledge skill spot checks
 
-See the table appended below (five claims per skill, checked against the IA 8.3 manual).
+An independent agent picked five claims per skill (its own choice, weighted toward claims that would cause harm if wrong) and checked them against the IA 8.3 manual. Claims already verified live were skipped.
+
+| Skill | Checked | Correct | Wrong / unsupported | Fixed |
+|---|---|---|---|---|
+| `ignition-config` | 5 | 4 | API key "required for all routes" (IA: "most") | Yes |
+| `ignition-security` | 5 | 5 | Same wording in `api-keys.md` (found while checking config) | Yes |
+| `ignition-dev` | 5 | 5 | none | - |
+| `ignition-architect` | 5 | 4 | "Core Historian does not use Store and Forward" (IA: it does when writes are pending); "own WAL" unsupported | Yes |
+| `ignition-ui` | 5 | 5 | none | - |
+| `ignition-plan` | 5 | 5 | none | - |
+
+Claims checked included:
+- mode selection and scans
+- the 8.3.7 `local` overrides
+- `requestScan` defaults
+- secret provider versions and `system.secrets` signatures
+- API key defaults
+- the Jython 2.7.4 update
+- `execUpdate` / `runPrepQuery` / `queryAggregatedPoints` signatures, including parameters removed in 8.3.9
+- failover time
+- Event Streams sources and handlers
+- the two-way auth default
+- style class ordering and built-in themes
+- query binding return formats
+- the Form submit button and Offline mode
+- Edge storage limits, the 20 MB upload limit, the duplicate-username migration behaviour and audit table names
+
+Caveat added: anonymous access to Ignition's OPC UA server is off by default. IA's own manual contradicts itself on whether Offline mode queues form submissions; the skills make no claim either way.
+
+## Summary
+
+| Area | Result |
+|---|---|
+| `/ignition-deploy` end to end (UDT + ISA-18.2 alarm, commit, scan, read back, mode promotion) | PASS after fixes |
+| `/ignition-inspect` over MCP with a read-only key, `script_run` not deployed | PASS after fixes |
+| `/ignition-review` blind run | PASS; 7 skill gaps fixed |
+| Knowledge spot checks | 28 of 30 correct; 2 wrong and 1 unsupported, all fixed |
+| Open questions from the change map | All resolved live except `system.historian.queryValues` (left out of the skills) |
+

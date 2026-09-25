@@ -26,7 +26,7 @@ A key is a named Gateway resource. It can be overridden or moved per deployment 
 
 - Header **[IA docs]**: `X-Ignition-API-Token: <your-api-token>`.
 - Value format **[live 8.3.9]**: `<tokenName>:<secret>`.
-- Required for all routes documented on the Gateway's `/openapi`, including `/data/api/v1/resources`, `/data/api/v1/sync`, `/data/api/v1/modes` **[IA docs]** (on a live 8.3.9 Gateway the deployment mode route is `/data/api/v1/mode`, singular; `/modes` returns 404).
+- Required for most routes documented on the Gateway's `/openapi` (IA: "Most documented endpoints require authentication"), including `/data/api/v1/resources`, `/data/api/v1/sync`, `/data/api/v1/modes` **[IA docs]** (on a live 8.3.9 Gateway the deployment mode route is `/data/api/v1/mode`, singular; `/modes` returns 404).
 
 ## Permissions and least privilege
 

@@ -181,7 +181,7 @@ Tag Groups set how often tags execute (OPC polling, expression evaluation, query
 
 | Option | Module | Notes |
 |---|---|---|
-| **Core Historian** | Historian Core | Embedded QuestDB: partitioning, dedup, archiving, native aggregation. Writes through its own WAL and does **not** use Store and Forward. Default memory 10% of system RAM. Prefer the Discrete deadband style, or deadband off with Periodic sampling, to avoid costly out-of-order writes |
+| **Core Historian** | Historian Core | Embedded QuestDB: partitioning, dedup, archiving, native aggregation. Store and Forward is used only when there are pending writes to the database; with none pending, the Core Historian skips it entirely (IA 8.1 to 8.3 upgrade guide). Default memory 10% of system RAM. Prefer the Discrete deadband style, or deadband off with Periodic sampling, to avoid costly out-of-order writes |
 | **Internal Historian (Legacy)** | Historian Core | SQLite; for small or existing systems. Supports pruning and remote sync |
 | **SQL Historian** | SQL Historian | History in a SQL DB; partitioning and pruning per historian. Suits reporting, external tools, long retention |
 | **Remote Historian** | Historian Core | Reads or stores to a history provider on another Gateway over the Gateway Network |
@@ -261,7 +261,7 @@ Level 0:   Safety network - SIS (isolated, no SCADA connection)
 
 - OPC UA goes down to Level 1/2; web clients come up from Level 4-5.
 - **Never** connect OT and business networks directly; route through the DMZ, and only with explicit authorization.
-- 8.3 OPC UA: anonymous clients get browse and read only by default; write and call need authenticated users or explicit role mappings.
+- 8.3 OPC UA: anonymous clients get browse and read only by default; write and call need authenticated users or explicit role mappings. Anonymous access to Ignition's OPC UA server is itself off by default ("Anonymous Access Allowed" = false).
 
 ### SIS Boundary
 

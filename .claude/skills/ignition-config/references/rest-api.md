@@ -19,7 +19,7 @@ The spec is generated from the running Gateway and its installed modules, so it 
 
 ## Authentication
 
-- Header **[IA docs]**: `X-Ignition-API-Token: <your-api-token>`. Required for all routes documented in `/openapi`.
+- Header **[IA docs]**: `X-Ignition-API-Token: <your-api-token>`. IA: "Most documented endpoints require authentication using an API Token"; check each route in `/openapi`.
 - Keys are created on Platform > Security > API Keys; see `../../ignition-security/references/api-keys.md`.
 - API keys are required for the resource-based config routes under `/data/api/v1/resources`, `/data/api/v1/sync` and `/data/api/v1/modes` **[IA docs]** (on a live 8.3.9 Gateway the deployment mode route is `/data/api/v1/mode`, singular; `/modes` returns 404).
 - Token value format **[live 8.3.9]**: `<tokenName>:<secret>`, sent as `X-Ignition-API-Token: <tokenName>:<secret>`. IA's manual shows only `<your-api-token>`. A request without a token gets 401.
