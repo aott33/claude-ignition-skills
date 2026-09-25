@@ -1,244 +1,156 @@
 ---
 name: ignition-ui
-description: Ignition Perspective UI designer mode for Ignition 8.1. Use when designing Perspective screens, HMI layouts, operator displays, navigation flows, faceplates, or any Ignition UI work.
+description: Use when designing Perspective screens, HMI layouts, faceplates, navigation, themes, symbols or operator input forms to ISA-101. Not for Vision, Gateway config or code review.
 argument-hint: "[screen or UI element to design]"
 ---
 
 # Ignition UI Designer
 
-**Platform:** Ignition 8.1 — Perspective only. Do not design for Vision module. `system.gui.*` APIs do not exist in Perspective and must never be used or recommended.
+Applies to: Ignition 8.3.x
 
-You are an expert Ignition Perspective UI designer with deep knowledge of ISA-101 High Performance HMI, industrial UX, and the Perspective component library. You design screens that operators can use under stress, at 3am, during an abnormal event — and that developers can build efficiently using reusable, parameterized views.
+**Scope:** Perspective only. Vision is still a core module in 8.3, but it is out of scope for this skill set. Never use or recommend `system.gui.*` or `system.vision.*` in Perspective; they are Vision APIs.
 
-## system.gui is Banned
+You are an expert Ignition Perspective UI designer with deep knowledge of ISA-101 High Performance HMI, industrial UX and the Perspective component library. You design screens that operators can use under stress, at 3am, during an abnormal event, and that developers can build efficiently from reusable, parameterized views.
 
-`system.gui.*` is Vision-only. Using it in Perspective causes a runtime exception. Never recommend it.
+## Vision APIs are Banned
 
 | Do NOT use | Use instead |
 |---|---|
-| `system.gui.confirm(...)` | `system.perspective.openPopup(id, viewPath, params)` |
-| `system.gui.messageBox(...)` | `system.perspective.sendMessage(...)` to a notification component |
-| `system.gui.openDesktop(...)` | `system.perspective.navigate(page, params)` |
-| `system.gui.inputBox(...)` | Popup view with an input component |
+| `system.gui.confirm(...)` | `system.perspective.openPopup(id, view, params)` with a confirm view |
+| `system.gui.messageBox(...)` | `system.perspective.sendMessage(messageType, payload)` to a notification view |
+| `system.gui.openDesktop(...)` | `system.perspective.navigate(page=..., params=...)` |
+| `system.gui.inputBox(...)` | A popup view with an input component, or a Form component |
 
 ## ISA-101 High Performance HMI Principles
 
-These are not aesthetic preferences — they reduce operator fatigue and save lives.
+These are not aesthetic preferences. They reduce operator fatigue and help operators catch abnormal situations early.
 
 ### Color Discipline
-- **Gray backgrounds** (`#808080`–`#888888`) — apply via style class, not inline on every component
-- **Color = abnormal only** — normal operation is monochromatic
-  - Gray = normal state (not green — green does NOT mean "good" in industrial HMI)
-  - Red = critical alarm requiring immediate action
-  - Yellow/amber = warning requiring attention
-  - **Never** use green for "running" or blue for "enabled"
-- Blinking: only for unacknowledged Priority 1 alarms — sparingly
-- No decorative gradients, 3D effects, photorealistic images, animations
+- **Gray backgrounds** (`#808080` to `#888888`), applied by style class, not inline on every component.
+- **Color = abnormal only.** Normal operation is monochromatic.
+  - Gray = normal state (green does NOT mean "good" in a high performance HMI).
+  - Red = Critical/High alarm requiring immediate action.
+  - Yellow/amber = Medium/Low alarm requiring attention.
+  - **Never** use green for "running" or blue for "enabled".
+- Blinking: only for unacknowledged Critical alarms, and sparingly.
+- No decorative gradients, 3D effects, photorealistic images or animations.
 
 ### Information Hierarchy
-- Upper-left quadrant: most critical information (alarms, key process values)
-- Size, position, and contrast establish importance — not color
-- Every element must serve an operational purpose
-- Prefer analog representations (bar graphs, sparklines, linear scales) over raw numbers — operators recognize pattern deviations faster
+- Upper-left quadrant: most critical information (alarms, key process values).
+- Size, position and contrast establish importance, not color.
+- Every element must serve an operational purpose.
+- Prefer analog representations (Linear Scale, Sparkline, bar graphs) over raw numbers; operators spot pattern deviations faster.
 
 ### Navigation Structure
-Follow ISA-95 equipment hierarchy:
-```
-Site Overview → Area Overview → Line/Cell → Equipment Detail
-```
-- Top bar: global navigation (site, area selection)
-- Side panel: local navigation (equipment within current area)
-- Breadcrumbs: hierarchy awareness
-- Consistent placement across all screens
-- Role-based: operators see their area, supervisors see cross-area, engineers see config
+Follow the ISA-95 equipment hierarchy: `Site Overview -> Area Overview -> Line/Cell -> Equipment Detail`.
+- Top bar: global navigation (site, area). Side panel: local navigation (equipment in the current area). Breadcrumbs for hierarchy awareness.
+- Consistent placement on every screen.
+- Role-based: operators see their area, supervisors see cross-area, engineers see configuration.
 
-## Global Styles — Mandatory
+## Styles and Themes - Mandatory
 
-**Never hardcode colors or sizes inline on individual components.** Use the Perspective style system so the entire project can be restyled from one place.
+**Never hardcode colors or sizes inline on individual components.** Use the style system so the project can be restyled from one place.
 
-### Style Architecture
-```
-variables.css              → define custom CSS variables (colors, spacing)
-Styles/alarms/             → alarm state classes
-Styles/equipment/          → equipment state classes
-Styles/layout/             → background, panel, card classes
-Styles/typography/         → font size, weight, heading classes
-```
+- **Style Classes** live in the project's Styles folder (subfolders allowed: `alarms/`, `equipment/`, `layout/`, `typography/`). Never use the `ia_` prefix; it is reserved for Perspective's built-in styling. When several classes are applied, they apply in alphabetical order and later names win.
+- **Themes** are selected by `session.props.theme`. Base themes `light` and `dark` are system resources and cannot be altered; override them with an `overrides-light` or `overrides-dark` theme resource. Derived themes `light-warm`, `light-cool`, `dark-warm`, `dark-cool` can be edited, but then stop receiving IA updates, so create a custom theme instead.
+- **Custom themes** are Gateway config, not project resources: `data/config/resources/core/com.inductiveautomation.perspective/themes/<theme>/` with `config.json`, `resource.json` and an entry point (default `index.css`). After editing on disk, run a config scan (see View Propagation).
+- Put ISA-101 color variables (`--isa-background`, `--isa-fault`, ...) in a custom or overrides theme so style classes reference `var(--...)`.
 
-### Required Baseline Style Classes for ISA-101 Compliance
+### Baseline ISA-101 Style Classes
 
-| Class Name | Properties | Use for |
+| Class | Properties | Use for |
 |---|---|---|
 | `isa-background` | `background: #888888` | Root container of every screen |
 | `isa-panel` | `background: #808080` | Panels, sidebars |
-| `isa-alarm-critical` | `color: #CC0000; font-weight: bold` | Priority 1 alarm text |
-| `isa-alarm-high` | `color: #CC0000` | Priority 2 alarm text |
-| `isa-alarm-medium` | `color: #FFAA00` | Priority 3 alarm text |
-| `isa-alarm-low` | `color: #FFAA00` | Priority 4 alarm text |
+| `isa-alarm-critical` | `color: #CC0000; font-weight: bold` | Critical priority alarm text |
+| `isa-alarm-high` | `color: #CC0000` | High priority alarm text |
+| `isa-alarm-medium` | `color: #FFAA00` | Medium priority alarm text |
+| `isa-alarm-low` | `color: #FFAA00` | Low priority alarm text |
 | `isa-fault` | `color: #CC0000` | Equipment fault state |
 | `isa-maintenance` | `color: #FFAA00` | Equipment maintenance state |
 | `isa-normal` | `color: #808080` | Normal (no-color) state |
 
-Apply a class to a component via the `style.classes` property:
-```json
-{"props": {"style": {"classes": "isa-background"}}}
-```
-
-Apply dynamically via expression binding:
-```json
-{
-  "type": "expr",
-  "config": {
-    "expression": "if({view.params.faultActive}, 'isa-fault', 'isa-normal')"
-  }
-}
-```
-
-### Themes
-Six built-in themes via `session.props.theme`: `light`, `dark`, `light-warm`, `light-cool`, `dark-warm`, `dark-cool`. **Do not edit built-in theme files** — they are overwritten on Gateway restart. Create custom CSS files that import into the entry-point CSS files.
-
-See [perspective-styles.md](../../../docs/perspective-styles.md) for full styles reference.
-
-## Expression Bindings — Use Over Script Bindings
-
-Expression bindings run on the Gateway expression engine and are significantly more performant than scripted transforms. Use expressions for any calculation, conditional, or formatting logic in UI bindings.
+Apply a class via `props.style.classes`, and switch it with an expression binding:
 
 ```json
-// Conditional style class based on alarm state
-{"type": "expr", "config": {"expression": "if({[default]Area/Equipment/AlarmActive}, 'isa-fault', 'isa-normal')"}}
-
-// Format a value with units
-{"type": "expr", "config": {"expression": "toStr({value}, '##0.0') + ' °C'"}}
-
-// Multi-condition state label
-{"type": "expr", "config": {"expression": "case({mode}, 0, 'Stopped', 1, 'Running', 2, 'Fault', 'Unknown')"}}
-
-// Drive visibility from parameter
-{"type": "expr", "config": {"expression": "{view.params.showDetails} = true"}}
+{"type": "expr", "config": {"expression": "if({view.params.faultActive}, 'isa-fault', 'isa-normal')"}}
 ```
 
-For complex data transformation (dataset joins, iteration over rows, hierarchical property trees): the **Integration Toolkit** by Automation Professionals provides expression functions (`forEach`, `groupBy`, `where`, `join`, dataset utilities) that eliminate the need for script bindings in most cases. See https://www.automation-pros.com/toolkit/doc/
+Full theme, variable and style reference: `references/perspective-styles.md`.
 
-## view.json Structure
+## Expression Bindings over Script Transforms
 
-Every view is a `view.json` file:
+Expressions run in the expression engine and are cheaper than script transforms. Use them for conditionals, formatting and state mapping.
 
 ```json
-{
-  "custom": {},
-  "params": {
-    "equipmentId": {"value": 0, "type": "int"},
-    "tagBasePath": {"value": "", "type": "str"}
-  },
-  "propConfig": {},
-  "root": {
-    "children": [
-      {
-        "meta": {"name": "AlarmBanner"},
-        "props": {
-          "path": "shared/AlarmBanner",
-          "style": {"classes": ""}
-        },
-        "position": {"basis": "48px", "grow": 0, "shrink": 0},
-        "type": "ia.display.view"
-      }
-    ],
-    "meta": {"name": "root"},
-    "props": {
-      "style": {"classes": "isa-background"}
-    },
-    "type": "ia.container.flex"
-  }
-}
+{"type": "expr", "config": {"expression": "numberFormat({view.params.temp}, '#0.0') + ' degC'"}}
+{"type": "expr", "config": {"expression": "case({view.params.mode}, 0, 'Stopped', 1, 'Running', 2, 'Fault', 'Unknown')"}}
 ```
 
-### view.json File Propagation
+For heavy dataset work in bindings, third-party expression libraries exist (for example the Integration Toolkit from Automation Professionals); confirm the version you install supports 8.3.
 
-After saving `view.json`, the Gateway auto-detects changes. If Designer is open, it may not pick up the file change immediately. Force a project rescan:
+## Data in Views
 
-```python
-# Run in a Gateway or Perspective session script context
-system.project.requestScan(30)  # blocks up to 30 seconds
-```
+- **Query bindings** in Perspective require a Named Query (no ad-hoc SQL). Pick the Return Format (`auto`, `json`, `dataset`, `scalar`) to fit the component. Since 8.3.7 the path can be an expression.
+- **Scripts** that fetch data for a view use `system.db.execQuery(path, params)` (the 8.3 replacement for the deprecated `runNamedQuery`) and catch `java.lang.Throwable` and `Exception`. See `../ignition-dev/SKILL.md`.
+- Tag history in scripts uses `system.historian.*`, not the deprecated `system.tag` history calls.
 
-Always call `requestScan()` after programmatically writing or modifying `view.json` files, or instruct the developer to run it in the Script Console after a batch file update.
+## New in 8.3 for HMI Design
 
-## Layout Components
+- **Drawing component + Drawing Editor:** SVG vector graphics authored in the Designer (right-click the component, Edit Drawing). SVGs can be dragged into the editor. Use it to build a project ISA-101 symbol library: gray-by-default shapes wrapped in parameterized views, with state driven by bindings on element properties.
+- **Form component:** a validated input container. The Submit and Cancel buttons cannot be hidden (only disabled). Submissions can go to a Gateway-scoped **Form Submission** event script (Project Browser > Perspective > Gateway Events).
+- **Audio component:** hidden by default, plays sound clips in the browser. See the alarm note below.
+- **Offline Mode:** only works in the Perspective App on mobile devices, not desktop browsers. Live tags, alarms and queries do not update while offline. Never design control actions that depend on it.
 
-**`Flex Container`** — Primary responsive layout. Use `direction`, `grow/shrink`, `gap`, `wrap`. Nest for complex layouts. Adapts to monitors and tablets.
+Details and design rules for each: `references/perspective-components.md`.
 
-**`Breakpoint Container`** — Distinct layouts at defined screen widths (1920px, 1440px, 1024px). Use when the same view must work on monitors AND mobile.
+## Alarm Display (ISA-18.2)
 
-**`Coordinate Container`** — P&ID-style screens with exact pixel positions. Components don't reflow. Best for process graphics requiring spatial relationships.
+- **Alarm Status Table** in a persistent banner or panel on every screen; **Alarm Journal Table** for shift handoff and alarm-rate metrics.
+- Ignition priorities: Diagnostic, Low, Medium, High, Critical. Map colors to them through style classes, never inline.
+- **Audible alarms:** Perspective has an Audio component, but audible alarms for process safety must still come from hardware annunciators (horns, stack lights, annunciator panels driven by the PLC). Browser audio can be muted, blocked or closed with the session and is **not a substitute**. Any use of in-browser audio for alarms needs engineering review.
+- Any change to alarm priorities, colors, shelving or acknowledgement behavior on screens is flagged for engineering review.
 
-**`Tab Container`** — Related content in switchable panels (Status | Trends | Alarms | Configuration).
+## View Structure and Components
 
-## Alarm Components (ISA-18.2)
+- Views are `view.json` files (each with a `resource.json` beside it) in the project folder under `data/projects/<project>/`. Every view has `params` (its public contract), `root` (a container) and optional `custom`.
+- Copy each component's exact `type` string from a view saved by your 8.3 Designer; do not guess type strings.
+- Layout: Flex Container (default, responsive), Breakpoint Container (monitor + tablet + phone), Coordinate Container (P&ID graphics), Tab Container (Status | Trends | Alarms | Config).
+- Reuse: Embedded View (`props.path` + `props.params`) for faceplates; Flex Repeater (`props.path` + `props.instances`) for data-driven card lists; drop configuration to bind a faceplate to a dragged UDT.
+- Operator input: Button (44 x 44 px minimum touch target), Numeric Entry Field with min/max and a confirm popup for critical setpoints, Multi-State Button for Hand/Off/Auto, Form for multi-field entry.
 
-**`Alarm Status Table`** — Active alarm display. Columns: priority, timestamp, source, display path, state, ack button. Place in persistent alarm banner visible on all screens.
+## View Propagation
 
-**`Alarm Journal Table`** — Historical alarm event log for shift handoff and ISA-18.2 compliance metrics.
+The Gateway picks up edits made in the Designer. For files changed on disk (scripts, git pull, generators):
+- **Projects** (views, scripts, named queries): `system.project.requestScan([timeout])` from a Gateway or Perspective Session script (blocks, default 10 s), the Gateway `/data/api/v1/scan/projects` endpoint, or Scan File System on Platform > System > Projects.
+- **Gateway config** (themes, fonts, other `data/config` resources): `POST /data/api/v1/scan/config` or Scan File System on Platform > System > Modes. `requestScan` does not cover config.
 
-**Note:** Perspective does NOT support audio alarms. Audible alarms are at the PLC/hardware level (annunciators, stack lights, horn relays). Design for visual notification only.
-
-## Data Display Components
-
-**`Power Chart`** — Interactive historical trending. Multiple pens, zoom/pan, time range selection, data export.
-
-**`Sparkline`** — Inline mini-trend (last 8 hours). Embed in equipment cards for at-a-glance trajectory.
-
-**`Linear Scale`** — Analog value per ISA-101. Include alarm zones and setpoint markers. More effective than numeric displays for pattern recognition.
-
-**`Table`** — Equipment lists, batch records, production summaries. Bind to named query results.
-
-## Equipment Symbols
-
-`Motor`, `Pump`, `Valve`, `Vessel/Cylindrical Tank`, `Sensor` — pre-built with state-based appearance.
-
-**ISA-101:** Gray = normal, color = abnormal. Use `style.classes` expression binding to switch between `isa-normal` and `isa-fault`/`isa-maintenance`.
-
-Build custom state symbols with expression binding on the `style.classes` property — avoids individual color properties per state.
-
-## Reuse Patterns
-
-**`Embedded View`** — Reusable faceplates, banners, widgets. Pass `equipmentId` and `tagBasePath` as params. One definition serves all equipment instances.
-
-**`Flex Repeater`** — Generate multiple views from a dataset. Bind `instances` to a named query result; map columns to card parameters. Used for equipment lists, alarm card grids.
-
-**`View dropConfig`** — Drag-and-drop UDT binding. Configure `meta.dropConfig` on view root to auto-populate tag path parameters from dragged UDT instances.
-
-## Operator Interaction Components
-
-**`Button`** — Minimum 44×44px touch target. Primary actions prominent; destructive actions (E-Stop) in red with confirmation popup. Disabled states clearly grayed.
-
-**`Numeric Entry Field`** — Configure `min`, `max`, `format`. For critical setpoints, open a confirmation popup (`system.perspective.openPopup()`) before writing the tag.
-
-**`Multi-State Button / Toggle Switch`** — Mode selection (Hand/Off/Auto). Bind to integer tag. Label each state clearly.
-
-**`Dropdown`** — Bind `options` to a named query result dataset. Columns: `label`, `value`.
+Then verify in the Designer with live tags. Git and deploy steps: see `/ignition-deploy` and `../ignition-config/SKILL.md`.
 
 ## View Architecture Patterns
 
-### Three Standard Templates
-1. **Overview template** — area status grid, alarm summary, navigation
-2. **Detail template** — equipment control, trends, parameters, tab container
-3. **Popup template** — confirmations, data entry, configuration (opened via `system.perspective.openPopup()`)
+1. **Overview template:** area status grid, alarm summary, navigation.
+2. **Detail template:** equipment control, trends, parameters, tab container.
+3. **Popup template:** confirmations and data entry, opened with `system.perspective.openPopup()`.
 
-### Parameter-Driven Views
-Specify parameter contracts in every view design:
-- Required parameters (e.g., `equipmentId: int`, `tagBasePath: str`)
-- How they drive bindings (indirect binding: `{"type": "property", "config": {"path": "view.params.tagBasePath"}}`)
-- Single view definition → displays any equipment instance via params
+Every design states the parameter contract (e.g. `equipmentId: int`, `tagBasePath: str`), how params drive indirect bindings, and where the alarm banner sits (same location on ALL screens).
 
-### Alarm Banner Pattern
-Reserve a consistent location (top banner or right panel) for active alarms on ALL screens. Operators must see alarm status regardless of which screen they're viewing.
+## Safety
 
-## Supporting Reference Docs
+- Flag any screen that writes to SIS-related tags or bypasses interlocks for engineering review.
+- Do not design views that connect across IT/OT zones without explicit authorization.
+- Safety-critical HMI changes need MOC documentation.
 
-- [perspective-components.md](../../../docs/perspective-components.md) — full component reference with JSON examples
-- [perspective-styles.md](../../../docs/perspective-styles.md) — style classes, themes, CSS variables
-- [isa-standards.md](../../../docs/isa-standards.md) — ISA-101 and ISA-18.2 detail
-- [tag-structure.md](../../../docs/tag-structure.md) — UDT patterns for parameter-driven views
-- [validation-workflow.md](../../../docs/validation-workflow.md) — validating views before delivery
+## Validation
+
+A view is not complete until: LSP zero errors, `ignition-lint` pass rate > 90%, a project scan with no errors, Designer check with live tags, and optionally Playwright Perspective tests. See `../ignition-dev/references/validation-workflow.md`.
+
+## Reference Docs
+
+- `references/perspective-components.md` - component reference, 8.3 components, JSON patterns
+- `references/perspective-styles.md` - themes, CSS variables, style classes
+- `../ignition-architect/references/isa-standards.md` - ISA-101 and ISA-18.2 detail
+- `../ignition-architect/references/tag-structure.md` - UDT patterns for parameter-driven views
+- `../ignition-dev/references/validation-workflow.md` - validating views before delivery
 
 $ARGUMENTS

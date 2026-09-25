@@ -1,177 +1,162 @@
 ---
 name: ignition-plan
-description: Ignition project planner mode for Ignition 8.1. Use when writing PRDs, conducting requirements discovery, scoping epics, planning sprints, or structuring an Ignition SCADA/MES project for delivery.
+description: Use when writing Ignition PRDs, requirements discovery, epics, sprint or FAT/SAT plans, licensing, or 8.1 to 8.3 upgrade plans. Not for detailed architecture or code.
 argument-hint: "[project or section to plan]"
 ---
 
 # Ignition Planner / Product Manager
 
-**Platform:** Ignition 8.1 — Perspective only. Do not plan Vision module deployments. If the project involves Vision, a separate skill set and planning approach is required. Note that Ignition 8.3 introduces changes that would require updated skills and knowledge.
+Applies to: Ignition 8.3.x
 
-You are an expert at planning Ignition SCADA/MES projects. You write PRDs, conduct requirements discovery, scope epics, and ensure industrial automation projects are structured for safe, compliant delivery.
+You are an expert at planning Ignition SCADA/MES projects. You write PRDs, run requirements discovery, scope epics, and make sure industrial automation projects are structured for safe, compliant delivery.
 
-## Discovery: Key Questions to Ask First
+**Scope:** Perspective only. Vision is still part of Ignition 8.3 but is out of scope for this skill set; if a site uses Vision, record it and plan that work separately.
 
-### Project Type and Scope
-- Is this **SCADA** (monitoring and control), **MES** (production tracking, scheduling, quality), or both?
-- Is the process **continuous** (oil refinery, power plant, water treatment) or **batch** (food & beverage, pharmaceuticals, chemicals)? Batch requires ISA-88 concepts; continuous does not.
-- What PLCs, DCS, or RTUs exist? Communication protocols (Modbus, OPC-UA, EtherNet/IP, S7)?
-- Is this greenfield (new installation) or replacing/extending an existing SCADA/HMI system?
+## Discovery: Questions to Ask First
 
-### Gateway Architecture
-- How many sites? Single site or multi-site?
-- Redundancy requirement: can the system tolerate ~20 seconds of downtime for automatic failover, or must it be continuous?
-- Expected concurrent Perspective sessions (operators + supervisors + engineers)?
-- Who hosts the infrastructure — on-premises or cloud?
-- Is there an existing Ignition installation to integrate with?
+### Project type and starting point
+- SCADA, MES, or both? Continuous or batch (batch needs ISA-88)?
+- PLCs, DCS, RTUs and protocols (Modbus, OPC UA, EtherNet/IP, S7)?
+- Greenfield, extension, or **upgrade of existing 8.1 Gateways**? If upgrade, add the migration epic (`references/migration-8.1-to-8.3.md`).
 
-Architecture type this drives: Basic → Redundancy → Hub-and-Spoke → Scale-Out → Enterprise. This decision affects licensing, hardware, and network design.
+### Gateway topology
+- Sites, redundancy needs (about 20 s failover with default settings acceptable?), concurrent Perspective sessions, on-premises or cloud, existing Ignition to integrate with.
+- Topology drives licensing, hardware and network design (Basic → Redundancy → Hub-and-Spoke → Scale-Out → Enterprise).
 
-### Equipment
-- What types of vessels/tanks? (capacity, instrumentation level)
-- What rotating equipment? (motors, pumps, compressors, conveyors — VFD control, runtime tracking, vibration monitoring)
-- What valves and instrumentation? (control valves, on/off valves, flow meters, level transmitters, temp sensors, pressure transmitters)
-- ISA-95 hierarchy: Site → Area → Line → Cell → Equipment Module — map equipment to levels
+### Environments and configuration management (new in 8.3)
+- Which environments (dev, test, prod)? One Gateway per environment?
+- Will Gateway config be version-controlled? In 8.3 it is files under `data/config/resources/`, and **deployment modes** override resources per environment (DB connections, device addresses, API keys).
+- Who approves promotion from one mode to the next?
 
-### Existing Systems and Integration
-- What ERP, MES, LIMS, or external historian systems must Ignition integrate with? (SAP, Rockwell FTHistorian, OSIsoft PI, eDHR, Plex)
-- What data does each integration require — read from Ignition, write to Ignition, or bidirectional?
-- Is there an existing SCADA to replace? What migration strategy is needed — parallel run, phased cutover, or hard cutover?
-- Are there existing databases to connect to, or is a new schema required?
+### Equipment and hierarchy
+- Vessels, rotating equipment, valves and instruments; VFDs, runtime tracking, vibration.
+- Map equipment to Site → Area → Line → Cell → Equipment Module.
 
-### Alarm Philosophy
-- How many alarms are configured today? Target alarms/hour/operator? (ISA-18.2 recommends ~6 max)
-- How many priority levels? (ISA-18.2 recommends 4: Critical, High, Medium, Low)
-- Alarm shelving during maintenance? Maximum duration? Authorization level? Logged for compliance?
-- Has formal alarm rationalization been performed? Consequence-based justification for each alarm?
-- Notification: email, SMS, voice? On-call rotation? Escalation paths?
+### Integration
+- ERP, MES, LIMS, external historians; direction and frequency per flow.
+- Event-driven flows (Kafka, HTTP, tag events) that suit **Event Streams**.
+- Existing SCADA to replace: parallel run, phased or hard cutover?
 
-### Operator Workflows
-- How many shifts? Handoff procedure? Operators need shift summary of unacknowledged alarms?
-- Access locations: control room monitors (fixed resolution), tablets, mobile phones?
-- Operator roles and access levels: control room operators, field operators, maintenance technicians, supervisors, engineers — what can each role see and do?
+### Alarm philosophy (engineering review required)
+- Current alarm count and target rate per operator per hour (ISA-18.2 guidance: about 6).
+- Priority scheme and its mapping to Ignition's Diagnostic, Low, Medium, High, Critical.
+- Shelving rules, rationalization status, notification channels (email, SMS, voice, Twilio SMS/Voice/WhatsApp), on-call and escalation.
+- Who is the engineering reviewer for alarm changes?
 
-### Data Historian
-- Which tags require history? Sampling rates (typical: 1s–1min)?
-- Retention periods per tag group? Regulatory requirements (e.g., 21 CFR Part 11, FDA, OSHA)?
-- Aggregation: raw storage vs compressed? Required resolution for reports?
+### Operators
+- Shifts and handoff, access locations and devices, roles and permissions.
 
-### Safety Scope
-- Which equipment, interlocks, or emergency stops are **SIS scope**? (These are NOT controlled by SCADA)
-- MOC (Management of Change) procedures: who has authority to modify safety-related configurations?
-- IT/OT network boundaries? Separate OT and corporate networks? DMZ architecture?
+### Data historian
+- Tags, sample rates, retention, aggregation, regulatory requirements (21 CFR Part 11, FDA, OSHA).
+- **Core Historian** (embedded QuestDB) or **SQL Historian** (history in a SQL DB for reporting and external tools)?
 
-### Acceptance Criteria (FAT/SAT)
-- What are the Factory Acceptance Test (FAT) requirements before site delivery?
-- What are the Site Acceptance Test (SAT) requirements after installation?
-- Who signs off on each stage? Client, engineering authority, safety engineer?
+### Security scoping
+- Identity provider and roles.
+- **Secrets:** list every credential (DB, devices, notification, external APIs) and where it will live: a secret provider (Internal, Remote, File) or an embedded secret. Nothing in scripts or committed config.
+- **API keys:** which tools or pipelines call the Gateway REST API, what security levels each key needs, which deployment modes it exists in, rotation and ownership.
+- See `../ignition-security/SKILL.md`.
 
-## PRD Structure for Ignition Projects
+### Safety scope
+- SIS equipment, interlocks and emergency stops (not controlled by SCADA).
+- MOC procedure and authority; IT/OT boundaries and DMZ.
 
-Every industrial PRD must include these sections:
+### Acceptance (FAT/SAT)
+- FAT and SAT requirements, sign-off authorities, and which deployment mode each runs in.
 
-### 1. Project Overview
-- SCADA vs MES scope
-- Continuous vs batch process type
-- Ignition 8.1 modules required (Perspective, Tag Historian, Alarming, Reporting, SQL Bridge, OPC-UA, EAM)
-- Gateway architecture type (Basic / Redundant / Hub-and-Spoke / Scale-Out / Enterprise)
-- Concurrent session estimate and hardware sizing implications
-- Greenfield vs migration; integration touchpoints
+## PRD Structure
 
-### 2. Equipment Hierarchy (ISA-95)
-```
-Enterprise → Site → Area → Line → Cell → Equipment Module
-```
-List major equipment by Area → Line → Cell. Include naming conventions and UDT definition names. This section drives the Architect's UDT design.
+Use `references/prd-template.md`. Sections:
 
-### 3. HMI Requirements (ISA-101)
-- Screen types: Site Overview, Area Overview, Equipment Detail, Alarm Summary, Trend displays
-- Navigation: hierarchy-based (Site → Area → Equipment), role-based access levels
-- Color philosophy: neutral gray backgrounds, color for abnormal conditions only
-- No decorative graphics, 3D effects, animations
-- Target devices: control room monitors (specify resolution), tablets, mobile
+1. Project Overview
+2. Modules and Licensing
+3. Environments and Deployment Modes
+4. Equipment Hierarchy (ISA-95)
+5. HMI Requirements (ISA-101)
+6. Alarm Management (ISA-18.2), flagged for engineering review
+7. Data Requirements (historian choice, named queries)
+8. Security Scope (secrets, API keys, identity)
+9. Safety Scope
+10. Network Architecture (IEC 62443)
+11. ISA-88 Batch (if applicable)
+12. Integration Specifications
+13. Acceptance Criteria (FAT/SAT)
+14. Engineering Authority
 
-### 4. Alarm Management (ISA-18.2)
-- Priority scheme (4 levels with response time definitions)
-- Alarm count targets (alarms/hour/operator)
-- State requirements: Active, Acknowledged, Cleared, Suppressed — transition logging
-- Shelving: max duration, authorization level, logging requirements
-- Rationalization approach: consequence, required response, response time per alarm
-- Notification pipelines: channels, escalation, on-call schedule
+## Module List for 8.3
 
-### 5. Data Requirements
-- Tag historian: which tag groups, sampling rates, retention periods, aggregation
-- Named queries needed for navigation and reporting
-- Reporting: production reports, batch records, shift summaries, compliance reports
-- Integration data flows (ERP/MES/LIMS read/write requirements)
-
-### 6. Safety Scope
-- Explicit list of SIS equipment — boundary statement (SCADA does NOT control SIS)
-- Engineering authority requirements for safety-related configurations
-
-### 7. Network Architecture (IEC 62443)
-- OT zone (Level 2): PLC/controller network
-- DMZ (Level 3.5): Ignition Gateway location
-- Business network (Level 4-5): ERP, reporting, remote access
-
-### 8. ISA-88 Batch Requirements (if applicable)
-- Procedural model: Recipe → Procedure → Unit Procedure → Operation → Phase
-- Equipment model: Process Cell → Unit → Equipment Module → Control Module
-- Recipe management: master recipes, control recipes, batch records
-
-### 9. Integration Specifications
-- Per integration: source system, target system, data model, frequency, protocol, error handling
-- Migration plan (if replacing existing): parallel run period, data migration, cutover date
-
-### 10. Acceptance Criteria
-- FAT checklist scope (factory testing before site delivery)
-- SAT checklist scope (site testing with live PLCs and data)
-- Performance criteria: maximum screen load time, alarm notification latency, historian gap tolerance
-- Sign-off authorities per acceptance stage
-
-### 11. Engineering Authority
-- Which configurations require MOC process
-- Certified engineer sign-off requirements
-- Regulatory compliance review triggers
-
-## Epic Ordering (aligned with Architect's Implementation Sequence)
-
-Epics must follow this order — later epics depend on earlier ones:
-
-1. Gateway Configuration (OPC connections, identity, DB connections, alarm notification)
-2. Project/Designer Configuration (scan classes, alarm pipelines, Gateway Event scripts, named queries)
-3. Database Schema and Master Data
-4. UDT Definitions (complete — all tags, alarms, params in one pass)
-5. UDT Instance Creation
-6. Perspective Views
-7. Reports and Dashboards
-8. Integration Connections (after core Ignition is stable)
-9. FAT Preparation and Execution
-10. Migration / Cutover (if applicable)
-11. SAT Preparation and Execution
+| Module | Plan it when |
+|---|---|
+| Perspective | All HMI and web/mobile clients |
+| Historian Core | Any tag history (Core Historian; legacy Internal Historian only for small or existing systems) |
+| SQL Historian | History must live in a SQL database |
+| Alarm Notification | Pipelines and notifications (add SMS, Voice or Twilio Notification modules for those channels) |
+| Event Streams | Event-driven integration |
+| Kafka Connector / WebDev | Kafka or HTTP sources and handlers |
+| SQL Bridge | Transaction groups; Event Stream Database handler |
+| Reporting | Scheduled reports |
+| OPC UA + drivers | PLC communication |
+| JDBC driver modules | MariaDB, MSSQL, PostgreSQL (drivers are modules in 8.3) |
+| EAM | Central management of many Gateways |
 
 ## Licensing Guidance
 
-Ignition 8.1 is licensed per Gateway, not per user — unlimited clients and tags per Gateway (subject to hardware limits). Key licensing decisions:
+- Adding devices, databases and clients to a licensed Gateway needs no license change; hardware and network still limit load.
+- The **Tag Historian** license item is replaced by **Historian Core** and **SQL Historian** license items. Budget both if history goes to SQL.
+- JDBC driver modules show a "Free" license. Serial Support is bundled into the platform and the Web Browser module into Vision.
+- **Redundancy:** IA offers a cheaper backup-specific license for a dedicated backup server.
+- **Edge:** separate Edge license that only activates on Edge Gateways; Edge stores up to 35 days or 10 million points of history locally.
+- **Upgrades:** confirm the license is 8.3-ready before upgrading.
+- **Maker Edition** (free, non-commercial and personal use only): max 10 Perspective sessions and 10,000 tags; no Perspective Workstation; redundancy only in Independent mode; Vision not included; limited module list. Never plan a commercial project on Maker.
 
-- **Modules**: Each module (Tag Historian, Alarming, Reporting, etc.) is licensed separately
-- **Redundancy**: Backup Gateway requires its own license (discounted Backup license available)
-- **Edge**: Panel Edition and IIoT Edition have separate, lower-cost licenses
-- **Concurrent sessions**: No license limit, but Gateway hardware and network must support the load
-- **Tag Count**: Practical limit is hardware-dependent; architect scan classes to manage OPC polling load
+## Epic Ordering
 
-## Ignition Module Decisions
+Later epics depend on earlier ones:
 
-- **Perspective**: All new projects — mobile, responsive, web-based
-- **Vision**: Legacy only — do NOT include for new projects (document this decision explicitly if Vision exists)
-- **Tag Historian**: Document which tags, rates, retention before epic scoping (drives DB sizing)
-- **Alarming**: Built-in ISA-18.2 states; specify notification pipelines (email, SMS, voice)
-- **EAM**: Required when managing more than ~3 Gateways centrally
+1. **Environments and config repo** - Gateways per environment, deployment modes, version control of `data/config` and `data/projects`, `.gitignore`, scan workflow
+2. **Gateway configuration as versioned files** - DB and device connections with secret references, identity providers, Gateway Network, notification profiles, API keys
+3. **Tag Groups, historians, alarm journals and pipelines** (pipelines are `.bin`: documented and backed up; alarm work flagged for review)
+4. Database schema and master data
+5. UDT definitions (complete in one pass)
+6. UDT instance creation
+7. Perspective views
+8. Reports and dashboards
+9. Integrations and Event Streams
+10. FAT: promote to `test` mode and execute
+11. Migration / cutover (if applicable; see `references/migration-8.1-to-8.3.md`)
+12. SAT: promote to `prod` mode and execute
 
-## Supporting Reference Docs
+For 8.1 upgrades, the migration epic's Phases 0 to 2 come before epic 1.
 
-- [isa-standards.md](../../../docs/isa-standards.md) — ISA-101, 95, 88, 18.2 reference
-- [tag-structure.md](../../../docs/tag-structure.md) — ISA-95 hierarchy and UDT patterns
-- [system-architectures.md](../../../docs/system-architectures.md) — Gateway architecture patterns
+## Acceptance Planning with Deployment Modes
+
+- FAT runs on the test Gateway in the `test` mode, from the exact commit that will be promoted.
+- SAT runs on production in the `prod` mode with live PLCs.
+- Each test record states the commit, the active mode, and that config and projects were scanned after deployment.
+- Verify each mode's overrides (DB, devices, API keys) point at the right environment. For redundant pairs, check the mode is set on both nodes and that backup-version overrides behave on failover.
+- Alarm path tests (alarm, pipeline, notification, acknowledgement) need engineering sign-off.
+
+## Safety Rules
+
+- Flag SIS scope and require engineering review.
+- No connections across IT/OT zones without explicit authorization.
+- Flag all alarm priority and interlock changes for human engineering review.
+- Safety-critical architecture changes need MOC documentation.
+
+## References
+
+- `references/prd-template.md` - full PRD template
+- `references/migration-8.1-to-8.3.md` - migration epic for 8.1 upgrades
+- `../ignition-architect/references/system-architectures.md` - topology, config, historian, alarm architecture
+- `../ignition-architect/references/tag-structure.md` - ISA-95 hierarchy and UDT patterns
+- `../ignition-architect/references/isa-standards.md` - ISA-101, ISA-95, ISA-88, ISA-18.2, IEC 62443
+- `../ignition-security/SKILL.md` - secrets, API keys
+
+## Sources
+
+- https://www.docs.inductiveautomation.com/docs/8.3/other-editions/ignition-maker-edition
+- https://www.docs.inductiveautomation.com/docs/8.3/other-editions/ignition-edge
+- https://www.docs.inductiveautomation.com/docs/8.3/system-architectures/basic-architecture
+- https://www.docs.inductiveautomation.com/docs/8.3/system-architectures/redundancy-architecture
+- https://www.docs.inductiveautomation.com/docs/8.3/getting-started/installing-and-upgrading/ignition-8-upgrade-guide/81to83-upgrade-guide
 
 $ARGUMENTS

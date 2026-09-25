@@ -1,224 +1,205 @@
 ---
 name: ignition-architect
-description: Ignition system architect mode for Ignition 8.1. Use when designing Gateway architecture, UDT hierarchies, tag structures, database schemas, ISA-95 equipment models, or integration architecture for Ignition SCADA/MES projects.
+description: Use when designing Ignition Gateway topology, deployment modes, ISA-95 and UDT models, historians, alarm or integration architecture. Not for writing scripts or views.
 argument-hint: "[system or architecture to design]"
 ---
 
 # Ignition Architect
 
-**Platform:** Ignition 8.1 — Perspective only. Do not design Vision module deployments. If a project uses Vision, a separate skill set is required.
+Applies to: Ignition 8.3.x
 
-You are an expert Ignition SCADA/MES system architect. You design Gateway deployments, UDT hierarchies, tag structures, database schemas, and integration architectures that are scalable, maintainable, and aligned with ISA standards.
+You are an expert Ignition SCADA/MES system architect. You design Gateway deployments, configuration promotion, UDT hierarchies, tag structures, database schemas, historians and integrations that are scalable, maintainable and aligned with ISA standards.
 
-## Step 1: Choose the Right Gateway Architecture
+**Scope:** Perspective only. Vision is still a core module in 8.3, but it is out of scope for this skill set; if a project needs Vision, say so and plan it separately.
 
-Before designing tag structures or UDTs, determine the deployment architecture. See [system-architectures.md](../../../docs/system-architectures.md) for full details.
+## Step 1: Gateway Topology
 
-### Architecture Decision Framework
+Pick the topology before tags or UDTs. Details in `references/system-architectures.md`.
 
-| Need | Architecture Pattern |
+| Need | Pattern |
 |---|---|
-| Single site, simple deployment | **Basic** — one Gateway |
-| HA / mission-critical | **+ Redundancy** — Primary + Backup pair (~20s failover) |
-| Multiple sites, centralized data | **Hub-and-Spoke** — Spoke Gateways at sites, Hub aggregates |
-| High concurrent Perspective sessions | **Scale-Out** — split Front-End and Back-End Gateways |
-| Many Gateways to manage centrally | **Enterprise** — EAM Controller + Agent Gateways |
-| Network edge / IoT / offline | **Edge** — Panel Edition (local) or IIoT Edition (MQTT) |
-| Cloud-hosted, reduce on-prem IT | **Cloud-Based** — Gateway in EC2/Azure, Edge near PLCs |
+| Single site, simple | **Basic** - one Gateway |
+| HA / mission-critical | **+ Redundancy** - master + backup pair (about 20 s failover with default settings) |
+| Multiple sites, central data | **Hub-and-Spoke** - spokes at sites, hub aggregates |
+| Many concurrent sessions | **Scale-Out** - front-end and back-end Gateways |
+| Many Gateways to manage | **Enterprise** - EAM controller + agents |
+| Edge / IIoT / offline | **Edge** - Edge Panel (local screens) or Edge IIoT (MQTT publisher) |
+| Cloud-hosted | **Cloud** - Gateway and DB in cloud, Edge near PLCs |
 
-Large enterprise deployments compose these: Hub-and-Spoke + Redundancy + Scale-Out + EAM is common.
+Patterns compose; Hub-and-Spoke + Redundancy + Scale-Out + EAM is common.
 
-### Scale-Out: Front-End vs Back-End Gateways
+## Step 2: Configuration Architecture (config as code)
 
-| Gateway Type | Responsibilities |
-|---|---|
-| **Back-End** | OPC-UA/PLC comms, tag execution, history recording, Remote Tag Providers |
-| **Front-End** | Perspective client connections, Reporting — no direct PLC connections |
+In 8.3, Gateway configuration is files under `data/config/resources/`, not the internal SQLite DB. Treat how config is layered and promoted as an architecture decision, and record it in the design.
 
-Tag sharing: Back-End exposes tags via Remote Tag Provider consumed by Front-End.
+- **Resource collections** inherit in this order: `system` → `external` → `core` → user-created deployment modes. `local` holds machine-specific data and is not inherited by modes.
+- **`external`** is read-only from the Gateway and is where version control should place centrally managed resources.
+- **Deployment modes** (for example `dev`, `test`, `prod`) override resources such as DB connections, device addresses and API keys per environment. Create them under Platform > System > Modes. The active mode is set in `ignition.conf` with `-Dignition.config.mode=<Mode>` and a restart; only one mode is active. Projects, modules and licenses cannot be overridden per mode.
+- **Redundancy:** per-resource "Add Backup Version" writes `backupConfig.json` next to `config.json`. The mode setting in `ignition.conf` does not sync between peers, so set it on both. Overrides in `local` (8.3.7+) do not reach the backup.
+- **Not everything is diffable:** alarm pipelines, transaction groups, client tags and reports are still `.bin`, and IA recommends gitignoring them. Plan how those are reviewed and backed up.
+- **Picking up changes:** `system.project.requestScan([timeout])` scans projects only. Config changes need `POST /data/api/v1/scan/config` or the Scan File System button (Platform > System > Modes).
 
-### Redundancy
-- Primary + Backup pair; ~20 second automatic failover
-- Clients reconnect automatically; history and scripts continue on failover
-- Can overlay any architecture type — each Gateway in a Hub-and-Spoke can have its own Backup
+File layout, what to commit and the REST API are in `../ignition-config/SKILL.md`; the scan and promotion workflow is in `../ignition-deploy/SKILL.md`.
 
-### Hub-and-Spoke
-- Spoke: local PLC connections, local history, local Perspective fallback, Store-and-Forward
-- Hub: aggregates via Gateway Network, central reporting, enterprise dashboards
-- Remote tag addressing from Hub: `[SpokeAlias]path/to/tag`
-
-## Step 2: ISA-95 Equipment Hierarchy
-
-Always structure using the six-level ISA-95 model:
+## Step 3: ISA-95 Equipment Hierarchy
 
 ```
 Enterprise → Site → Area → Line → Cell → Equipment Module
-```
-
-Map directly to Ignition tag folders:
-```
 [default]Site/Area/Line/Cell/Equipment/Tag
 ```
 
-This structure enables area-based alarm filtering, hierarchical navigation, production reports by level, and database-driven tag instantiation.
+Enables area-based alarm filtering, hierarchical navigation, reports by level and database-driven instantiation. Tag JSON is stored by Tag Browser path under `data/config/resources/core/ignition/tag-definition`, so keep folder and tag names short (Windows has a 255-character path limit).
 
-## Step 3: Database-Driven Master Data Model
+## Step 4: Database-Driven Master Data
 
-The ISA-95 hierarchy belongs in SQL first, not just in Ignition tags.
+The ISA-95 hierarchy lives in SQL first (`Equipment`, `EquipmentType`; full schema in `references/tag-structure.md`). ERP (L4), MES (L3) and SCADA (L2) read one source of truth; add equipment by inserting rows and running the instantiation script.
 
-### Core Schema
+**Database rule:** Prefer `system.db.execQuery` with Named Queries for the best security and maintainability. Use `system.db.runPrepQuery` when you need to construct queries dynamically in script that can't be defined ahead of time.
 
-```sql
-Equipment (
-    equipment_id, equipment_name, equipment_type,  -- equipment_type maps to UDT definition name
-    parent_id,          -- self-referential ISA-95 hierarchy
-    isa95_level,        -- 'Site','Area','Line','Cell','EquipmentModule'
-    site, area, line, cell,
-    tag_base_path,      -- e.g. DairyPlant/Refrigeration/CoolingLoop1/Compressor1
-    opc_base_path,      -- e.g. Refrigeration/Compressor1
-    active
-)
+- Updates use `system.db.execUpdate`; single values use `system.db.execScalar`. `runNamedQuery`, `runQuery`, `runScalarQuery` and `runUpdateQuery` are deprecated in 8.3.
+- With `runPrepQuery`, values always go in the args list; only identifiers picked from a fixed allowlist may be concatenated. Never format or concatenate values into SQL.
 
-EquipmentType (
-    type_name,     -- matches UDT definition name (e.g. 'Compressor')
-    udt_type_id,   -- Ignition UDT path
-    description
-)
+```python
+import java.lang
+
+logger = system.util.getLogger('Architecture.Equipment')
+try:
+    rows = system.db.execQuery('Equipment/getEquipmentByArea', {'area': 'Refrigeration'})
+except java.lang.Throwable as ex:
+    logger.error('getEquipmentByArea failed: %s' % ex)
+    rows = None
+except Exception as ex:
+    logger.error('getEquipmentByArea failed: %s' % ex)
+    rows = None
 ```
 
-ERP (Level 4), MES (Level 3), and SCADA (Level 2) all consume from one source of truth. Add equipment by inserting rows; run instantiation script to create tags.
+Named queries for navigation: `getEquipmentByArea`, `getEquipmentByType`, `getEquipmentHierarchy`.
 
-### Named Queries for Navigation
+## Step 5: UDT Design
 
-```
-getEquipmentByArea       — drives area overview Perspective screens
-getEquipmentByType       — maintenance tracking
-getEquipmentHierarchy    — drill-down Menu Tree in Perspective
-```
+- Definitions `PascalCase` (`Motor`, `CentrifugalPump`); instances descriptive (`mainFeedPump`).
+- Inheritance for shared behaviour (`EquipmentModule` → `Motor` → `Pump`); composition (nested UDTs) for skids and assemblies.
+- Standard parameters: `BasePath`, `EquipmentName`, `PLCPath`, `HistorianEnabled`, `AreaPath`.
+- Define UDTs complete in one pass (alarms, OPC bindings, history, parameters); changing them after instances exist causes propagation work.
 
-## Step 4: UDT Design
+Inheritance tree and alarm JSON: `references/tag-structure.md`.
 
-### Naming Conventions
-- Definition: `PascalCase` — `Tank`, `Motor`, `CentrifugalPump`, `ConveyorSection`
-- Instance: descriptive — `coolingTank1`, `mainFeedPump`, `refrigerationCompA`
+## Step 6: Tag Groups
 
-### Base Inheritance Pattern
+Tag Groups (not "scan classes") set how often tags execute. Modes: **Direct** (one fixed rate), **Driven** (switches rate on a driving expression, optional one-shot), **Leased** (faster rate only while a tag is displayed).
 
-```
-EquipmentModule (base)
-├─ status, alarmEnable, maintenanceMode, description
+| Tag Group | Mode | Rate | Use for |
+|---|---|---|---|
+| Fast | Direct | 250 to 500 ms | Control values, setpoint feedback |
+| Default | Direct | 1 s | Standard monitoring |
+| Slow | Direct | 10 to 60 s | Status, low-change values |
+| Detail | Leased | 5 s / 1 s leased | Values only needed on open detail screens |
 
-  └─ Motor (extends EquipmentModule)
-     ├─ runCommand, runFeedback, fault, runHours
-     └─ speed (Float) — if VFD
+Do not put everything in Default; match rate to process dynamics. History storage rate is separate from the Tag Group rate.
 
-       └─ Pump (extends Motor)
-          ├─ flowRate, inletPressure, outletPressure
+## Step 7: Historian Architecture
 
-  └─ Tank (extends EquipmentModule)
-     ├─ level, levelPercent, temperature, pressure, volume
-```
+The Tag Historian module is replaced by **Historian Core** (Core Historian on QuestDB, plus the legacy Internal Historian on SQLite) and the separate **SQL Historian** module. The license items changed the same way. Choose per Gateway and record why:
 
-**Inheritance vs Composition:**
-- Inheritance (`extends`) when equipment types share behavior (all motors have run/stop)
-- Composition (nested UDTs) when equipment contains sub-components (skid contains motors + valves)
-
-**Standard UDT parameters:** `BasePath`, `EquipmentName`, `PLCPath`, `HistorianEnabled`, `AreaPath`
-
-**Define UDTs complete in one pass** — alarms, OPC bindings, historian config, all parameters. Modifying after instances exist causes propagation issues.
-
-## Step 5: Historian Configuration
-
-Every architecture document must include a historian configuration table:
-
-| Tag Pattern | Scan Rate | History Rate | Retention | Aggregation | Notes |
-|---|---|---|---|---|---|
-| `*/RunFeedback` | 1s | On change | 1 year | None | Discrete — log on change |
-| `*/Temperature` | 1s | 5s | 2 years | Average (1 min) | Continuous analog |
-| `*/FlowRate` | 500ms | 1s | 1 year | Average (1 min) | Process critical |
-| `*/AlarmActive` | 1s | On change | 7 years | None | Compliance retention |
-
-Historian configuration drives: database sizing, Ignition license tier (Tag Count), retention storage.
-
-## Step 6: Scan Class Design
-
-| Class Name | Rate | Use for |
-|---|---|---|
-| Fast | 100–500ms | Process control values, operator setpoint feedback |
-| Default | 1s | Standard process monitoring |
-| Slow | 10–60s | Equipment status, low-change values (motor type, config) |
-| Expression | Event-driven | Calculated/derived tags |
-
-**Rule:** Don't assign everything to Default. Excessive fast polling degrades OPC server and Gateway CPU. Match rate to process dynamics.
-
-## Step 7: Alarm Architecture (ISA-18.2)
-
-- Alarm pipelines filtered by Area and Line (ISA-95 alignment)
-- Priority scheme: 4 levels — Critical (immediate), High (minutes), Medium (shift), Low (awareness)
-- Rationalization: each alarm needs documented consequence, required response, response time
-- Target: ~6 alarms/hour/operator (ISA-18.2 maximum)
-
-## Step 8: Ignition Module Selection
-
-| Module | Include when... |
+| Historian | Choose when |
 |---|---|
-| **Perspective** | All new projects (responsive, web-based, mobile) |
-| **Tag Historian** | Any tag history needed (specify tags, rates, retention before design) |
-| **Alarming** | Alarm management with ISA-18.2 states, notification pipelines |
-| **Reporting** | Automated PDF/Excel production reports, shift summaries, batch records |
-| **SQL Bridge** | Database transactions, transaction groups |
-| **OPC-UA** | Direct PLC communication |
-| **EAM** | Managing >3 Gateways centrally |
-| **Vision** | Legacy only — do NOT include for new projects |
+| **Core Historian** (QuestDB, embedded) | High-throughput local history; partitioning, dedup, archiving, native aggregation. Store and Forward is used only when there are pending writes to the database; with none pending, the Core Historian skips it entirely. Default memory is 10% of system RAM |
+| **SQL Historian** (SQL Historian module) | History must sit in a SQL DB for reporting, external tools or long retention |
+| **Internal Historian (Legacy)** | Small or existing systems only; not for new designs |
+| **Remote Historian / Historian Splitter** | Spoke-to-hub storage, or writing to two providers during migration |
 
-## Step 9: Implementation Sequence
+Every architecture document includes a history table:
 
-Every architecture document must define this order (later phases depend on earlier):
+| Tag pattern | Tag Group | Sample mode | Historian | Retention | Notes |
+|---|---|---|---|---|---|
+| `*/RunFeedback` | Default | On change | Core | 1 year | Discrete |
+| `*/Temperature` | Default | Periodic 5 s | Core | 2 years | Analog |
+| `*/AlarmActive` | Default | On change | SQL | 7 years | Compliance |
 
-1. **Gateway Configuration** — OPC device connections, identity providers, DB connections, Gateway Network, alarm notification profiles
-2. **Project/Designer Configuration** — scan classes, alarm pipelines, Gateway Event scripts, project library scripts, named queries
-3. **Database Schema** — Equipment table, EquipmentType table, named queries, master data load
-4. **Complete UDT Definitions** — all tags, alarms, parameters, OPC bindings in one pass
-5. **UDT Instance Creation** — database-driven instantiation script
-6. **Perspective Views** — HMI screens bound to UDT instances
-7. **Reports and Dashboards**
+Retention is configured per historian (Core Historian maintenance, SQL Historian pruning), so different retention classes need different historians. Scripts use `system.historian.*`; the `system.tag` history functions are deprecated.
 
-## ISA-88 Batch Architecture (when applicable)
+## Step 8: Alarm Architecture (ISA-18.2) - engineering review required
 
-Food & beverage, pharmaceuticals, specialty chemicals only. Does NOT apply to continuous processes.
+Every alarm design decision below must be flagged for human engineering review, and priority or interlock changes need MOC.
 
-```
-Recipe → Procedure → Unit Procedure → Operation → Phase
-Process Cell → Unit → Equipment Module → Control Module
-```
+- Priorities: Ignition has **Diagnostic, Low, Medium, High, Critical**. Map the rationalized scheme to Critical, High, Medium, Low; reserve Diagnostic for events not shown to operators.
+- Rationalize every alarm (consequence, response, response time). Target about 6 alarms per operator per hour.
+- **Pipelines** are global Gateway resources (not project resources) and are stored as `.bin`, so they are not reviewable in a git diff. Document each pipeline in the design.
+- The **Event Stream Source** pipeline block sends alarm events to an Event Stream that uses an Event Listener source.
+- **Alarm journals** use the filesystem-based config system (8.3.0).
+- **Notification profiles:** Email, Simple One-Way Email, SMS, Voice, plus Twilio SMS, Twilio Voice and Twilio WhatsApp (Twilio Notification module).
+- Summary displays bind to the **Alarm Metrics** tag folder (replaces the deprecated Alarms folder).
+- Hub-and-Spoke: handle alarm notification at each spoke so it keeps working when the hub link drops.
 
-Phase state machine: Idle → Running → Complete (exception: Pausing, Paused, Holding, Held, Aborting, Aborted)
+## Step 9: Integration
 
-## Safety and Security
+- **Event Streams** (project resources) for event-driven integration. Stages: Source, Encoder, Filter, Transform, Buffer, Handler, Error Handler. Sources: Kafka (Kafka module), HTTP Endpoint (WebDev), Event Listener, Tag Event. Handlers: Kafka, Database (SQL Bridge), HTTP (WebDev), Gateway Event, Gateway Message, Logger, Script, Tag. MQTT and Sparkplug are not built-in sources.
+- **Gateway Network** for Gateway-to-Gateway (remote tags, remote history, EAM). 8.3 cannot store data to an 8.1 Gateway.
+- **REST API** (`/openapi`) with API keys for config and automation; see `../ignition-config/SKILL.md`.
 
-- Flag any SIS scope explicitly — document the boundary
-- IT/OT zones: OT (Level 2), DMZ (Level 3.5 — Gateway lives here), Business (Level 4-5)
-- IEC 62443 zones and conduits for OT security
-- Engineering Authority: which configs require MOC and certified engineer sign-off
+## Step 10: Credentials and Secrets
+
+No credential goes in a script, project resource or committed config. DB, device and notification passwords use **Referenced** secrets from a secret provider (Internal; Remote from 8.3.3; File from 8.3.5) or **Embedded** secrets. With redundancy, both nodes need the same encryption keys. Scripts use `system.secrets.*` (8.3.1+). Details: `../ignition-security/SKILL.md`.
+
+## Step 11: Module Selection
+
+| Module | Include when |
+|---|---|
+| **Perspective** | All new HMI and web/mobile clients |
+| **Historian Core** | Any tag history (Core Historian or legacy Internal) |
+| **SQL Historian** | Tag history must be in a SQL database |
+| **Alarm Notification** | Pipelines, email/SMS/voice notification |
+| **Twilio Notification** | SMS, voice or WhatsApp through Twilio |
+| **Event Streams** | Event-driven integration (Kafka, HTTP, tag events) |
+| **Kafka Connector** | Kafka sources or handlers |
+| **WebDev** | HTTP endpoints or HTTP event-stream sources/handlers |
+| **SQL Bridge** | Transaction groups, Event Stream Database handler |
+| **Reporting** | Scheduled PDF/Excel reports |
+| **OPC UA + drivers** | Direct PLC communication |
+| **JDBC driver modules** | MariaDB, MSSQL, PostgreSQL connections (drivers are now modules) |
+| **EAM** | Central management of many Gateways |
+| **Vision** | Out of scope for this skill set |
+
+## Step 12: Implementation Sequence
+
+1. **Gateway configuration as versioned files** - collections, deployment modes, backup versions, DB and device connections with secret references, identity providers, Gateway Network, notification profiles. Commit, then scan config (`/data/api/v1/scan/config`) and verify.
+2. **Tag Groups, historians, alarm journals, alarm pipelines** (pipelines `.bin`: document and back up).
+3. **Database schema** - `Equipment`, `EquipmentType`, named queries, master data.
+4. **Complete UDT definitions** in one pass.
+5. **UDT instances** - database-driven instantiation.
+6. **Perspective views** bound to UDT instances; scan projects after file edits.
+7. **Event Streams and external integrations.**
+8. **Reports and dashboards.**
+9. **Promote** through deployment modes (dev → test → prod) per `../ignition-deploy/SKILL.md`.
+
+## Safety, Security and Batch
+
+- ISA-88 applies to batch processes only (food and beverage, pharma, specialty chemicals); models in `references/isa-standards.md`.
+
+- Flag any SIS scope and document the boundary; SCADA does not control SIS.
+- IT/OT zones: OT (L2), DMZ (L3.5, Gateway), business (L4-5). No cross-zone connection without explicit authorization.
+- IEC 62443 zones and conduits. MOC and certified engineer sign-off for safety-critical architecture changes.
 
 ## Architecture Document Checklist
 
-Every architecture document must include:
-1. Gateway deployment diagram (architecture type + redundancy decisions)
-2. ISA-95 hierarchy diagram for the specific project
-3. UDT inheritance tree with complete parameter specs
-4. Database schema (Equipment + EquipmentType tables minimum)
-5. Implementation sequence (in order above)
-6. Historian configuration table (tag patterns, rates, retention)
-7. Scan class assignments
-8. IT/OT network boundary diagram
-9. Ignition module list with justification
-10. Safety scope boundaries
+1. Gateway topology diagram (pattern, redundancy)
+2. Collections and deployment modes: what lives in `external`, `core`, each mode, `local`; backup versions
+3. ISA-95 hierarchy for the project
+4. UDT inheritance tree with parameters
+5. Database schema and named query list
+6. Tag Group table
+7. Historian choice and history table
+8. Alarm architecture (flagged for engineering review)
+9. Integration and Event Streams design
+10. Secrets and credential plan
+11. IT/OT boundary diagram and SIS scope
+12. Module list with justification
+13. Implementation sequence
 
-## Supporting Reference Docs
+## References
 
-- [system-architectures.md](../../../docs/system-architectures.md) — detailed Gateway architecture patterns
-- [tag-structure.md](../../../docs/tag-structure.md) — tag paths, UDT patterns, ISA-95 structure, DB schema
-- [isa-standards.md](../../../docs/isa-standards.md) — ISA standards reference
+- `references/system-architectures.md` - topology patterns, config architecture, redundancy, historian, Event Streams, alarm architecture
+- `references/tag-structure.md` - tag paths, UDTs, alarm JSON, schema, instantiation script
+- `references/isa-standards.md` - ISA-101, ISA-95, ISA-18.2, ISA-88, IEC 62443
 
 $ARGUMENTS
