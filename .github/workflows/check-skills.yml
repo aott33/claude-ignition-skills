@@ -1,0 +1,24 @@
+name: Check skills
+
+on:
+  push:
+    branches: [main, release/8.1]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate frontmatter, links, em-dashes and 8.3 wording
+        if: github.ref_name != 'release/8.1' && github.base_ref != 'release/8.1'
+        run: python3 scripts/check_skills.py
+      - name: Validate frontmatter, links and em-dashes (8.1 branch)
+        if: github.ref_name == 'release/8.1' || github.base_ref == 'release/8.1'
+        run: python3 scripts/check_skills.py --allow-81

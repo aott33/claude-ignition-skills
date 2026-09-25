@@ -1,0 +1,62 @@
+# .gitignore for an Ignition 8.3 repository rooted at the Gateway data/ folder
+# (the "full data directory" layout).
+#
+# Source: Inductive Automation, "Version and Source Control Guide", Ignition 8.3 manual
+#   https://www.docs.inductiveautomation.com/docs/8.3/tutorials/version-control-guide
+# The patterns below are IA's recommended list from that guide. Re-check the guide
+# when you upgrade Ignition; the list may change.
+#
+# Optional: binary (.bin) resources.
+#   IA recommends also ignoring Transaction Groups, Client Tags, Reports and
+#   Alarm Pipelines, which are stored as Java .bin files. The guide names the
+#   resource types but not their folders. Find their folders in your own data/
+#   tree and add those paths below if you choose to ignore them. Changes to
+#   Alarm Pipelines need human engineering review whether or not they are tracked.
+#
+# For the curated-mount (container) layout, IA's shorter list is:
+#   **/config/local
+#   **/config/resources/local
+#   **/conversion-report.txt
+#   **/.resources/
+
+# Database files
+**/db/
+**/metricsdb/
+**/autobackup/
+**/db_backup_sqlite.idb
+**/valueStore.idb
+
+# Cache and temporary files
+**/jar-cache/
+**/request
+**/response
+*.tmp
+*.bak
+**/var
+
+# Log files
+*.log
+**/logs
+
+# Certificates and security
+**/certificates/
+**/keystore/
+
+# Runtime configuration (environment-specific)
+**/config/local
+**/config/resources/local
+
+# Gateway-specific runtime files
+**/.container-init.conf
+
+# Backup and converted files
+**/conversion-report.txt
+**.digest.json
+
+# Project conversion artifacts
+**/projects/conversion-report.txt
+**/migration-log-*.md
+**/.resources/
+
+# Alarm history files
+**/.alarms_*
