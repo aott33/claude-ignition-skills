@@ -68,7 +68,9 @@ Then restart the Gateway service. Only one mode can be active at a time.
 
 **Redundancy:** the mode setting lives in `ignition.conf` and **does not sync** between master and backup. Set the same `-Dignition.config.mode` on both and restart both; otherwise a failover can bring up the backup with different device or database connections.
 
-**Containers:** IA does not document a Docker environment variable for the mode. The Docker image page documents passing extra JVM arguments after `--` in the container command, which are added to those in `ignition.conf`. If you use that route, test it on a non-production container and confirm the active mode on Platform > System > Modes.
+**Containers:** IA does not document a Docker environment variable for the mode. The Docker image page documents passing extra JVM arguments after `--` in the container command. Verified on a live 8.3.9 container: adding `-Dignition.config.mode=Dev` after `--` (for example in the Compose `command:`) and recreating the container made the Gateway run in `Dev`, applied the `Dev` overrides, and did **not** write anything to `ignition.conf`. Confirm the active mode with `GET /data/api/v1/gateway-info` (field `deploymentMode`, empty when running `core`) or on Platform > System > Modes.
+
+**Creating a mode:** Platform > System > Modes, or `POST /data/api/v1/mode` with `{"name", "title", "description"}` (live 8.3.9; note the route is singular `/mode`, although IA's API Keys page says `/modes`). The Gateway creates `data/config/resources/<ModeName>/config-mode.json` with `"parent": "core"`. Files placed under that folder are overrides that apply only while the Gateway runs in that mode (verified: a `Dev` override was ignored in `core` and applied in `Dev`).
 
 ### Scan after file changes
 

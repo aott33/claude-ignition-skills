@@ -3,7 +3,7 @@
 Working notes for moving `claude-ignition-skills` from Ignition 8.1 to Ignition 8.3.
 The frozen 8.1 line lives on branch [`release/8.1`](https://github.com/aott33/claude-ignition-skills/tree/release/8.1) (commit `747250c`, intended tag `v8.1-final`).
 
-Status: steps 1 to 3 (inventory, change map, gap analysis). Change map verified against the IA 8.3 manual on 2026-09-25. No skill has been rewritten yet; skill work waits for sign-off on the gap table in section 3.
+Status: steps 1 to 6 done. Change map verified against the IA 8.3 manual on 2026-09-25. The gap table (section 3) was approved with the role layout kept. Skills rewritten and added (section 4). Live verification is in [verification.md](verification.md). Alarm changes awaiting engineering review are in section 5.
 
 ---
 
@@ -174,12 +174,15 @@ All rows here are alarm-related and need human engineering review before they ch
 | C17 | Launchers | 8.3 launchers and Workstation work with 8.1; 8.1 ones do not work with 8.3 | plan | DOC | `D`81to83-upgrade-guide |
 | C21 | Upgrade points | Upgrade to the latest 8.1 first (strong advice, not a hard block). Protobuf replaces Java serialization, so upgrade the central storage Gateway first (8.3 cannot store to 8.1 remotely). MariaDB/MSSQL/PostgreSQL JDBC drivers are now modules, so add them to `GATEWAY_MODULES_ENABLED` in containers. Duplicate usernames in Internal/Hybrid sources are not allowed. No module hot swapping. Require Two-Way Authentication defaults to true. Anonymous OPC UA users lose write/call. 8.1 Gateway permissions are not carried over. Identity Provider JSON exports cannot be imported. Store-and-Forward quarantine exports are now JSON. The EAM Agent Recovery task is removed. Serial Support is bundled into the platform and Web Browser into Vision. **CORR:** audit log loss was a bug fixed in 8.3.0, not a standing limitation. **CORR:** Java 17 is stated in the SDK docs, not the upgrade guide | plan (migration epic), architect | DOC / RN | `D`81to83-upgrade-guide, `RN`8.3.0 |
 
-### 2.10 Still not in the docs
+### 2.10 Not in the docs, resolved on a live 8.3.9 Gateway
 
-1. API token value format (whether it is `name:secret`). Check against a live Gateway in step 5.
-2. The permission level needed for `/data/api/v1/scan/*`. Read it from the Gateway's `/openapi` in step 5.
-3. A Docker-native way to choose the deployment mode (only `ignition.conf` / JVM args are documented).
-4. `system.historian.queryValues` is mentioned on one page but has no reference page. Do not use it.
+See [verification.md](verification.md) for details.
+
+1. **API token value format:** `<tokenName>:<secret>`.
+2. **Scan permission:** scan `POST`s need a key level in the Gateway's **Write** permission. GETs, including scan status, need Access + Read.
+3. **Deployment mode in Docker:** `-Dignition.config.mode=<Mode>` after `--` in the container command works, and it is not written to `ignition.conf`.
+4. `system.historian.queryValues` is mentioned on one page but has no reference page. Still unverified; do not use it.
+5. **IA docs discrepancy:** the API Keys page says `/data/api/v1/modes`. The live route is `/data/api/v1/mode` (singular).
 
 ---
 
@@ -305,3 +308,51 @@ Testing, expressions, lint and module development are handled by pointing to the
 5. **`runPrepQuery` review rule** (3.4). Relax it to "prefer named queries"?
 6. **`runNamedQuery` in `CLAUDE.md`.** It is deprecated in 8.3 (C24). I plan to switch `CLAUDE.md` and every skill to `system.db.execQuery` / `execUpdate` / `execScalar`. Old code that uses `runNamedQuery` would get a review finding ("deprecated, migrate") rather than a rejection. OK?
 7. **Alarm changes** (section 2.8). Per `CLAUDE.md`, alarm guidance changes need engineering review. Who should review the ISA-18.2 text before merge?
+
+---
+
+## 4. What changed in step 4
+
+Decisions approved:
+- Keep the role layout.
+- Move `docs/` into per-skill `references/`.
+- Add `ignition-config`, `ignition-security`, `ignition-deploy` and `ignition-inspect`.
+- Point to external tools for tests, expressions and module development.
+- Database rule, in the owner's words: "Prefer `system.db.execQuery` with Named Queries for the best security and maintainability. Use `system.db.runPrepQuery` when you need to construct queries dynamically in script that can't be defined ahead of time."
+
+| Skill | Type | Change |
+|---|---|---|
+| `ignition-dev` | role | Rewritten. New `references/changed-in-8.3.md` (`system.db`, `system.historian`, `system.secrets` signatures). Validation, parallel-dev and Jython references rewritten for 8.3 |
+| `ignition-architect` | role | Rewritten: config-as-code step, Tag Groups, historian choice, Event Streams, secrets, alarm architecture, 8.3 module table. References rewritten; the alarm JSON was corrected and verified live |
+| `ignition-ui` | role | Rewritten: Drawing, Form, Audio, Offline mode, 8.3 themes, project vs config scans. Several wrong 8.1-era component property names fixed |
+| `ignition-plan` | role | Rewritten: 8.3 modules and licensing, Maker limits, deployment modes in FAT/SAT. New `prd-template.md` and `migration-8.1-to-8.3.md` |
+| `ignition-review` | action | Rewritten: DB verdict table, deprecated APIs, secrets, 8.3 config diffs. New `review-checklists.md` and `config-diff-review.md` |
+| `ignition-config` | knowledge (new) | Collections and modes, file layout, version control, `gitignore.sample`, REST API |
+| `ignition-security` | knowledge (new) | Secrets, API keys, agent guard rails, example Claude Code settings |
+| `ignition-deploy` | action (new) | Commit, scan, verify, promote between modes |
+| `ignition-inspect` | action (new) | Read-only Gateway inspection over ignition-mcp |
+
+Also changed:
+- `CLAUDE.md` rewritten for 8.3.
+- README rewritten, with install instructions.
+- Added `THIRD_PARTY_NOTICES.md` (no adapted material).
+- Added the CI check (`scripts/check_skills.py`, `.github/workflows/check-skills.yml`).
+
+## 5. Alarm-related changes for engineering review
+
+Per `CLAUDE.md`, the repo owner reviews every alarm-related change before merge. Grouped by file:
+
+| File | Change |
+|---|---|
+| `CLAUDE.md` | The alarm flag now also covers alarm pipeline and journal changes |
+| `ignition-dev/SKILL.md` | ISA-18.2 bullet: numbered priorities 1 to 4 replaced by Ignition's names (Diagnostic, Low, Medium, High, Critical). **Removed the list of alarm states** (Active, Acknowledged, Cleared, Suppressed). Added the Alarm Metrics folder (replaces the deprecated Alarms folder). Alarm Pipelines listed as `.bin` resources to gitignore |
+| `ignition-dev/references/*` | Alarm Metrics row. Setpoint writes affecting alarms or interlocks need review. Alarm pipelines have a single owner and are `.bin` |
+| `ignition-architect/SKILL.md` | Step 8 rewritten:<br>- five Ignition priorities and how the rationalized scheme maps to them<br>- pipelines are global `.bin` resources, documented rather than diffed<br>- Event Stream pipeline block<br>- alarm journals are file-based config<br>- notification profiles (Twilio SMS, Voice, WhatsApp)<br>- Alarm Metrics<br>- notify from each spoke<br>- review / MOC banner<br><br>Also: the module table adds Alarm Notification and Twilio; the implementation sequence adds journals and pipelines |
+| `ignition-architect/references/tag-structure.md` | UDT alarm JSON corrected:<br>- `alarms` list<br>- priority names instead of numbers (the old 1 = Critical mapping was wrong)<br>- `ackMode` changed from Auto to **Manual**<br>- `mode: AboveValue`, `deadbandMode`<br>- WhenTrue / WhenFalse modes<br>- `shelvingAllowed` and Alarm Metrics notes<br><br>Verified to import on 8.3.9 |
+| `ignition-architect/references/system-architectures.md` | New Alarm Architecture section. Hub-and-Spoke: "spoke alarms route through hub" replaced with IA's advice to notify at each spoke. Event Streams alarm block |
+| `ignition-architect/references/isa-standards.md` | Priority table in Ignition names with Diagnostic added. Blinking reserved for **Critical**. `shelvingAllowed`, WhenTrue / WhenFalse and Alarm Metrics notes. The "about 6 alarms/hour/operator" figure is kept as an ISA-18.2 figure, not an IA one |
+| `ignition-ui/SKILL.md` and references | Red and amber mapped to Critical/High and Medium/Low. Blinking only for unacknowledged Critical. **Removed "Perspective does NOT support audio alarms"**: the Audio component exists, but hardware annunciators remain required and browser audio is not a substitute. Offline sessions must not carry alarm response |
+| `ignition-plan/SKILL.md` and references | Alarm philosophy discovery (priority mapping, Twilio channels, named reviewer). Journal and pipeline epic flagged. FAT/SAT alarm path test with engineering sign-off. Migration: VOIP call-script locale collisions, Alarms folder to Alarm Metrics |
+| `ignition-review/*` | The alarm flag list now covers priority, setpoint, deadband, delay, mode, shelving and ack changes; alarm properties in tag/UDT JSON; journals; notification profiles; `.bin` pipelines. Deprecated Alarms folder is a finding. Audio proposed as an annunciator is flagged |
+| `ignition-security/*`, `ignition-inspect/*` | Agents must never acknowledge alarms: `tags_alarms_ack` is denied, and alarm reads are allowed |
+| `ignition-deploy/*`, `ignition-config/*` | Stop and flag any alarm pipeline, journal, notification or tag/UDT alarm change. `.bin` pipelines cannot be reviewed as text |

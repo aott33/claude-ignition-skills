@@ -21,7 +21,7 @@ The spec is generated from the running Gateway and its installed modules, so it 
 
 - Header **[IA docs]**: `X-Ignition-API-Token: <your-api-token>`. Required for all routes documented in `/openapi`.
 - Keys are created on Platform > Security > API Keys; see `../../ignition-security/references/api-keys.md`.
-- API keys are required for the resource-based config routes under `/data/api/v1/resources`, `/data/api/v1/sync` and `/data/api/v1/modes` **[IA docs]**.
+- API keys are required for the resource-based config routes under `/data/api/v1/resources`, `/data/api/v1/sync` and `/data/api/v1/modes` **[IA docs]** (on a live 8.3.9 Gateway the deployment mode route is `/data/api/v1/mode`, singular; `/modes` returns 404).
 - Token value format **[live 8.3.9]**: `<tokenName>:<secret>`, sent as `X-Ignition-API-Token: <tokenName>:<secret>`. IA's manual shows only `<your-api-token>`. A request without a token gets 401.
 - Permissions **[live 8.3.9]**: access is decided by the Access, Read and Write permission settings on Security > General Settings, matched against the key's security levels. A key with only the default `Authenticated` level got 403 even on GETs on a Gateway whose permission lists did not include it. A level in Access and Read allowed GETs; POST scans also needed the level in Write.
 

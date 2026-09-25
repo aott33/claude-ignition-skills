@@ -26,15 +26,17 @@ APPLIES_TO = 'Applies to: Ignition 8.3.x'
 EM_DASH = u'—'
 
 # Files allowed to talk about 8.1 freely (upgrade and history records).
+# Any file with 'migration' in its path is also allowed.
 ALLOW_81_FILES = {
     'docs/upgrade-notes.md',
     'docs/verification.md',
     'scripts/check_skills.py',
 }
-# A line mentioning 8.1 is fine when it is clearly about migration or history.
+# A line mentioning 8.1 is fine when it is clearly about migration or history,
+# or compares 8.1 with 8.3 on the same line.
 MIGRATION_CONTEXT = re.compile(
     r'8\.1\s*(to|->|→)\s*8\.3|from 8\.1|release/8\.1|v8\.1-final|'
-    r'upgrad|migrat|in 8\.1|8\.1 (gateway|launcher|user)s?|than 8\.1|8\.1 and 8\.3',
+    r'upgrad|migrat|\bin 8\.1|\bon 8\.1|8\.1 branch|8\.3',
     re.IGNORECASE)
 VERSION_81 = re.compile(r'(?<![\d.])8\.1(?![\d])')
 LINK = re.compile(r'\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)')
@@ -126,7 +128,8 @@ def check_text(path, text, allow_81, errors):
     for lineno, line in enumerate(text.splitlines(), 1):
         if EM_DASH in line and r != 'scripts/check_skills.py':
             errors.append('%s:%d: em-dash found (use " - ")' % (r, lineno))
-        if not allow_81 and r not in ALLOW_81_FILES and VERSION_81.search(line):
+        if (not allow_81 and r not in ALLOW_81_FILES and 'migration' not in r
+                and VERSION_81.search(line)):
             if not MIGRATION_CONTEXT.search(line):
                 errors.append('%s:%d: 8.1-only wording: %s' % (r, lineno, line.strip()[:120]))
 

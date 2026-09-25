@@ -60,3 +60,17 @@
 
 # Alarm history files
 **/.alarms_*
+
+# ---------------------------------------------------------------------------
+# Additions by this project (not in IA's list)
+# ---------------------------------------------------------------------------
+# Secrets Management key files (root.json, kek.json). IA's list does not cover
+# this path; if these leak, every embedded secret in the repo can be decrypted.
+**/config/ignition/keys/
+#
+# Tested against a live 8.3.9 Gateway data/ folder: with IA's list, git still
+# tracked these credential-bearing files. Decide per repo whether to ignore them:
+#   config/resources/*/ignition/user-source/*/users.json    internal users with password hashes
+#   config/resources/*/ignition/api-token/*/config.json     API key hashes
+#   any resource config.json with an embedded secret        (JWE: "ciphertext", "encrypted_key")
+# Prefer Referenced secrets from a secret provider for anything committed to git.

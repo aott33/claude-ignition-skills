@@ -28,7 +28,9 @@ The `system` collection is built into Ignition. IA's folder reference does not l
 
 | What | Where | Notes |
 |---|---|---|
-| Tags | `data/config/resources/core/ignition/tag-definition/...` | JSON, stored by the path shown in the Tag Browser |
+| Tags and UDT instances | `data/config/resources/core/ignition/tag-definition/<provider>/<folder path>/` | JSON, stored by the path shown in the Tag Browser. Each folder holds `udts.json` for UDT instances (atomic tags go in a sibling JSON file) plus a `unary-resource.json` (live 8.3.9) |
+| UDT definitions | `data/config/resources/core/ignition/tag-type-definition/<provider>/udts.json` | The Tag Browser `_types_` folder; one `udts.json` plus `unary-resource.json` per folder (live 8.3.9) |
+| Tag providers | `data/config/resources/core/ignition/tag-provider/<name>/config.json` + `resource.json` | A provider created as files and loaded with a config scan works (live 8.3.9) |
 | Custom Perspective themes | `data/config/resources/core/com.inductiveautomation.perspective/themes/<theme>/` | `config.json`, `resource.json`, `index.css` |
 | Named queries | `data/projects/<project>/ignition/named-query/<name>/` | SQL plus JSON |
 | Secrets Management keys | `data/config/ignition/keys/` | `root.json` and `kek.json`. Never commit; see `../../ignition-security/references/secrets.md` |

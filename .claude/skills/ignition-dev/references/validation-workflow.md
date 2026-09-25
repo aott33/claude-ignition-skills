@@ -115,7 +115,12 @@ curl -sS -X POST \
   "https://gateway.example:8043/data/api/v1/scan/projects"
 ```
 
-The IA manual documents `POST` for `/scan/config`. It lists `/scan/projects` without the method or the permission level the endpoints require; confirm both in the Gateway's own API docs at `/openapi`. API key creation and storage: [../../ignition-security/SKILL.md](../../ignition-security/SKILL.md).
+Both scans are `POST` (the Gateway's `/openapi` spec lists "Request Configuration Scan" and "Request Project Scan"). A `GET` on the same paths returns scan status: `{"scanActive": false, "lastScanTimestamp": ..., "lastScanDuration": ...}`. Verified on a live 8.3.9 Gateway:
+
+- The token value is `<tokenName>:<secret>`. No token returns 401.
+- What a key can do depends on the Gateway's Access, Read and Write permissions (Security > General Settings) matched against the key's security levels. `GET` calls need Access and Read; the scan `POST`s need **Write**. A key whose level is not in those permissions gets 403 even on `GET /data/api/v1/gateway-info`.
+
+Check `lastScanTimestamp` moved after your `POST` to confirm the scan ran. API key creation and storage: [../../ignition-security/SKILL.md](../../ignition-security/SKILL.md).
 
 **Pass:** the Gateway logs show the project or config reload with no errors for the resources you changed.
 

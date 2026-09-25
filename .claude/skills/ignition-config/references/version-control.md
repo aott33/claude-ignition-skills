@@ -15,6 +15,15 @@ Because 8.3 stores Gateway configuration as files under `data/config`, the whole
 
 For layout 2 IA's example `.gitignore` is only four lines: `**/config/local`, `**/config/resources/local`, `**/conversion-report.txt`, `**/.resources/`.
 
+### Credential material that IA's list still commits
+
+Tested on a live 8.3.9 Gateway (`data/` folder with IA's recommended `.gitignore`): git still tracked
+- internal user sources (`ignition/user-source/<name>/users.json`) with password hashes,
+- API key resources (`ignition/api-token/<name>/config.json`) with key hashes,
+- resource `config.json` files holding **Embedded** secrets as JWE (`ciphertext`, `encrypted_key`), for example an OPC connection password.
+
+None of these is plaintext, but they are credential material. Before the first commit, `git grep -lE '"ciphertext"|tokenHash|"password"'` and decide per file. Prefer **Referenced** secrets from a secret provider for anything that lives in git, and keep `data/config/ignition/keys/` out of git (our `gitignore.sample` adds it). See [../../ignition-security/SKILL.md](../../ignition-security/SKILL.md).
+
 Deployment modes pair well with layouts 2 and 4: keep one config set and let the active mode switch device and database targets per environment (see `collections-and-modes.md`).
 
 ## Bootstrapping a second Gateway (layout 1)

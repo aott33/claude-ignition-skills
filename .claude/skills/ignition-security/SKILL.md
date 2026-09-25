@@ -17,7 +17,7 @@ Background knowledge that applies whenever a task involves a password, token, ke
 3. **Clear plaintext.** `system.secrets.readSecretValue`, `readConfiguredSecretValue` and `decrypt` return a `PyPlaintext`. Use it in a `with ... as` block, or call `clear()` when done.
 4. **Least privilege for API keys.** One key per tool or pipeline, with only the security levels it needs. Read-only inspection keys must not have Write permission.
 5. **Agents do not get production write access by default.** Deny file edits on a shared Gateway's live `data/config/resources/**` and `data/projects/**`, deny remote script execution tools, and deny reading secret files. See `references/agent-guardrails.md` and `references/claude-settings.example.json`.
-6. **Keep keys and key material out of backups you share and out of git**: `data/config/ignition/keys/` (`root.json`, `kek.json`), certificates, keystores.
+6. **Keep keys and key material out of backups you share and out of git**: `data/config/ignition/keys/` (`root.json`, `kek.json`), certificates, keystores. IA's recommended `.gitignore` does not exclude the keys folder, user-source `users.json` (password hashes), API key hashes, or Embedded secrets inside resource files; on a live 8.3.9 Gateway all of these were committed with IA's list. Use Referenced secrets for config that lives in git (details: [../ignition-config/references/version-control.md](../ignition-config/references/version-control.md)).
 
 ## Secrets at a glance
 

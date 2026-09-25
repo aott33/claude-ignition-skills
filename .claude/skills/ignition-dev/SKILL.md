@@ -124,7 +124,7 @@ Summary: [../ignition-architect/references/isa-standards.md](../ignition-archite
 
 In 8.3 Gateway config is on the filesystem, not in an internal database:
 - Projects: `data/projects/<project>/` (views, scripts, named queries).
-- Gateway config: `data/config/resources/<collection>/...`; tags are JSON under `data/config/resources/core/ignition/tag-definition`, following the Tag Browser path.
+- Gateway config: `data/config/resources/<collection>/...`; tags are JSON under `data/config/resources/core/ignition/tag-definition/<provider>/...` (following the Tag Browser path) and UDT definitions under `.../tag-type-definition/<provider>/udts.json`. After editing them, run a config scan.
 - Transaction Groups, Client Tags, Reports and Alarm Pipelines are still `.bin` files. IA recommends gitignoring them; manage them in the Gateway or Designer.
 
 After editing files outside the Designer, make the Gateway pick them up:

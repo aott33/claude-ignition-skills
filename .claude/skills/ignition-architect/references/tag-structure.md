@@ -23,6 +23,18 @@ Applies to: Ignition 8.3.x
 
 Tag configuration is JSON under `data/config/resources/core/ignition/tag-definition` (or the equivalent folder of another collection or deployment mode), stored by the path shown in the Tag Browser. UDT definitions are tag resources too, so tag and UDT changes can be reviewed in a git diff.
 
+Observed on a live 8.3.9 Gateway after importing a UDT and an instance into provider `default`:
+
+```
+data/config/resources/core/ignition/
+  tag-type-definition/default/udts.json            <- UDT definitions (_types_), with alarms inline
+  tag-type-definition/default/unary-resource.json
+  tag-definition/default/Refrigeration/udts.json   <- UDT instances in folder Refrigeration
+  tag-definition/default/Refrigeration/unary-resource.json
+```
+
+Editing `udts.json` in git and then running `POST /data/api/v1/scan/config` applied the change (an alarm deadband edit read back through `/data/api/v1/tags/export`). The alarm JSON in the next sections imported unchanged.
+
 - Deep folder trees and long names make long file paths. Windows limits paths to 255 characters, so keep ISA-95 folder names short.
 - Import tags from an 8.1 export with care: tag and project imports do not run the upgrade check that a Gateway backup restore does, so imported tags may need manual fixes.
 
