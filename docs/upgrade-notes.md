@@ -340,12 +340,22 @@ Also changed:
 
 ## 5. Alarm-related changes for engineering review
 
-Per `CLAUDE.md`, the repo owner reviews every alarm-related change before merge. Grouped by file:
+Per `CLAUDE.md`, the repo owner reviews every alarm-related change before merge.
+
+**Owner decisions (2026-09-25):**
+
+| Item | Decision | Result |
+|---|---|---|
+| UDT example `ackMode` | Keep `Manual` as the default, with a note | `tag-structure.md` explains why `Manual` is the default; `Auto` is allowed only for alarm classes the rationalization approves; changing `ackMode` needs engineering review |
+| Alarm-state guidance in `ignition-dev` | Restore, corrected | States `ActiveUnacked`, `ActiveAcked`, `ClearUnacked`, `ClearAcked` (checked on the IA `system.alarm.queryStatus` page); keep `ClearUnacked` visible; shelving maps to `shelvingAllowed` / `system.alarm.shelve`; suppression by design maps to `enabled` (checked on the IA Tag Alarm Properties page) |
+| Perspective Audio and alarms | Keep as written | Browser audio only as a supplement, with engineering review; hardware annunciators required |
+
+All changes, grouped by file:
 
 | File | Change |
 |---|---|
 | `CLAUDE.md` | The alarm flag now also covers alarm pipeline and journal changes |
-| `ignition-dev/SKILL.md` | ISA-18.2 bullet: numbered priorities 1 to 4 replaced by Ignition's names (Diagnostic, Low, Medium, High, Critical). **Removed the list of alarm states** (Active, Acknowledged, Cleared, Suppressed). Added the Alarm Metrics folder (replaces the deprecated Alarms folder). Alarm Pipelines listed as `.bin` resources to gitignore |
+| `ignition-dev/SKILL.md` | ISA-18.2 bullet: numbered priorities 1 to 4 replaced by Ignition's names (Diagnostic, Low, Medium, High, Critical). Alarm-state line replaced with Ignition's four states, the ClearUnacked rule, and the shelving and suppression mapping (owner decision). Added the Alarm Metrics folder (replaces the deprecated Alarms folder). Alarm Pipelines listed as `.bin` resources to gitignore |
 | `ignition-dev/references/*` | Alarm Metrics row. Setpoint writes affecting alarms or interlocks need review. Alarm pipelines have a single owner and are `.bin` |
 | `ignition-architect/SKILL.md` | Step 8 rewritten:<br>- five Ignition priorities and how the rationalized scheme maps to them<br>- pipelines are global `.bin` resources, documented rather than diffed<br>- Event Stream pipeline block<br>- alarm journals are file-based config<br>- notification profiles (Twilio SMS, Voice, WhatsApp)<br>- Alarm Metrics<br>- notify from each spoke<br>- review / MOC banner<br><br>Also: the module table adds Alarm Notification and Twilio; the implementation sequence adds journals and pipelines |
 | `ignition-architect/references/tag-structure.md` | UDT alarm JSON corrected:<br>- `alarms` list<br>- priority names instead of numbers (the old 1 = Critical mapping was wrong)<br>- `ackMode` changed from Auto to **Manual**<br>- `mode: AboveValue`, `deadbandMode`<br>- WhenTrue / WhenFalse modes<br>- `shelvingAllowed` and Alarm Metrics notes<br><br>Verified to import on 8.3.9 |

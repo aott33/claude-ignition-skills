@@ -107,7 +107,7 @@ Never put passwords, API tokens or keys in scripts, named queries, view properti
 ## ISA standards in code
 
 - **ISA-101:** grey backgrounds via style class; colour only for abnormal states.
-- **ISA-18.2:** Ignition alarm priorities are Diagnostic, Low, Medium, High, Critical. Configure deadband on analog alarms. In 8.3 the tag Alarms folder is replaced by **Alarm Metrics**; the old folder is deprecated but still works, so use Alarm Metrics in new bindings.
+- **ISA-18.2:** Ignition alarm priorities are Diagnostic, Low, Medium, High, Critical. Configure deadband on analog alarms. Alarm states are `ActiveUnacked`, `ActiveAcked`, `ClearUnacked`, `ClearAcked` (the `state` values of `system.alarm.queryStatus`). An alarm can clear before it is acknowledged, so displays and filters must keep `ClearUnacked` alarms visible until acknowledged. ISA-18.2 shelving maps to Ignition shelving (`shelvingAllowed` on the alarm, `system.alarm.shelve`); suppression by design maps to the alarm's `enabled` property (a disabled alarm is not evaluated at all). Default `ackMode` is `Manual`. In 8.3 the tag Alarms folder is replaced by **Alarm Metrics**; the old folder is deprecated but still works, so use Alarm Metrics in new bindings.
 - **ISA-95:** hierarchy in tag paths and folders.
 - **ISA-88** (batch projects only): phase states Idle, Running, Complete, with Pausing, Paused, Holding, Held, Aborting, Aborted.
 

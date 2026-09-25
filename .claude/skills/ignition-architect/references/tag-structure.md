@@ -161,7 +161,9 @@ Alarms are a list under the member tag's `alarms` property, using the scripting/
 
 - `priority` values: `Diagnostic`, `Low`, `Medium`, `High`, `Critical` (use the names, not numbers).
 - `mode` values include `AboveValue`, `BelowValue`, `Equality`, `Bit`, `OnCondition`, and the 8.3 modes `WhenTrue` / `WhenFalse` for Boolean (or non-zero integer) tags.
-- `ackMode`: `Unused`, `Auto` (acknowledged when cleared), `Manual`. `Unused` keeps the alarm out of pipelines under the default dropout conditions.
+- `ackMode`: `Unused` (always marked acknowledged), `Auto` (acknowledged when cleared), `Manual` (acknowledged by the user). `Unused` keeps the alarm out of pipelines under the default dropout conditions.
+  - **Default to `Manual`**: acknowledgement is the operator's confirmation of awareness, and with `Auto` a short-lived alarm can clear and disappear before anyone sees it.
+  - `Auto` is acceptable only for alarm classes your alarm rationalization explicitly approves for it (record the decision in the alarm's `notes` or the rationalization database). Changing `ackMode` is an alarm change and needs engineering review.
 - `shelvingAllowed` (Boolean) controls whether operators can shelve the alarm.
 - Summary displays read the **Alarm Metrics** folder (for example `ActiveCountCritical`, `HasActiveUnackedHigh`), which replaces the deprecated Alarms folder.
 
