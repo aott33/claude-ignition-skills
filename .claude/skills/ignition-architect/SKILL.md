@@ -33,7 +33,7 @@ Patterns compose; Hub-and-Spoke + Redundancy + Scale-Out + EAM is common.
 In 8.3, Gateway configuration is files under `data/config/resources/`, not the internal SQLite DB. Treat how config is layered and promoted as an architecture decision, and record it in the design.
 
 - **Resource collections** inherit in this order: `system` → `external` → `core` → user-created deployment modes. `local` holds machine-specific data and is not inherited by modes.
-- **`external`** is read-only from the Gateway and is where version control should place centrally managed resources.
+- **`core`** is the shared base every mode inherits; in a git workflow commit it (minus per-Gateway credentials). **`external`** is read-only from the Gateway; use it only for guard rails the Gateway never generates in `core`, because `core` ranks above it. Details: `../ignition-config/references/docker.md`.
 - **Deployment modes** (for example `dev`, `test`, `prod`) override resources such as DB connections, device addresses and API keys per environment. Create them under Platform > System > Modes. The active mode is set in `ignition.conf` with `-Dignition.config.mode=<Mode>` and a restart; only one mode is active. Projects, modules and licenses cannot be overridden per mode.
 - **Redundancy:** per-resource "Add Backup Version" writes `backupConfig.json` next to `config.json`. The mode setting in `ignition.conf` does not sync between peers, so set it on both. Overrides in `local` (8.3.7+) do not reach the backup.
 - **Not everything is diffable:** alarm pipelines, transaction groups, client tags and reports are still `.bin`, and IA recommends gitignoring them. Plan how those are reviewed and backed up.

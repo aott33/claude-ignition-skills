@@ -12,7 +12,8 @@ In 8.1, Gateway configuration lived in an internal database and never showed up 
 |---|---|---|
 | `data/config/resources/core/...` | Default collection used when no mode is set | Does this change apply to every environment? |
 | `data/config/resources/<mode>/...` | Deployment mode overrides (dev, staging, prod ...) | Is the override in the right mode? Does it hide a change that should be in `core`? |
-| `data/config/resources/external/...` | Collection meant for VCS-placed resources; cannot be changed from the Gateway | Is the team using it as intended? |
+| `data/config/resources/external/...` | Read-only in the Gateway; `core` ranks above it | Is it only guard rails? A resource the Gateway also generates in `core` (UDT definitions, `security-properties`) is hidden there |
+| `core/ignition/{opc-connection,system-properties,quickstart,gateway-network-queue-settings,gateway-network-proxy-rules}`, `core/com.inductiveautomation.opcua/one-time` | Per-Gateway resources created on first boot | **Should not be committed**: they carry Gateway-specific secrets or names, or cause `CREATE conflict` migration errors on a fresh Gateway (`../../ignition-config/references/docker.md` rule 4) |
 | `data/config/resources/local`, `data/config/local` | Machine-specific data, not inherited by modes | **Should not be committed** (IA's recommended `.gitignore` excludes both) |
 | `data/config/resources/core/ignition/tag-definition/...` | Tags and UDT instances as JSON, by Tag Browser path | Review like code; alarm changes need engineering review. Watch the 255-character Windows path limit |
 | `data/config/resources/core/ignition/tag-type-definition/<provider>/udts.json` | UDT definitions | A change here applies to **every instance** of the UDT in every environment that inherits the collection. List the affected instances; alarm changes need engineering review |

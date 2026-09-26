@@ -18,6 +18,17 @@
 #   **/config/resources/local
 #   **/conversion-report.txt
 #   **/.resources/
+# plus, when core is committed (tested on 8.3.9; see docker.md rule 4), these
+# per-Gateway resources that every Gateway creates on first boot:
+#   **/config/resources/core/ignition/user-source/
+#   **/config/resources/core/ignition/identity-provider/temp/
+#   **/config/resources/core/ignition/opc-connection/
+#   **/config/resources/core/ignition/system-properties/
+#   **/config/resources/core/ignition/gateway-network-queue-settings/
+#   **/config/resources/core/ignition/gateway-network-proxy-rules/
+#   **/config/resources/core/ignition/quickstart/
+#   **/config/resources/core/com.inductiveautomation.opcua/one-time/
+#   **/migration-log-*.md
 
 # Database files
 **/db/
