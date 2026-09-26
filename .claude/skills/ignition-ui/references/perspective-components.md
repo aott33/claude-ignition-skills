@@ -144,6 +144,28 @@ Ignition priorities are Diagnostic, Low, Medium, High, Critical. Priority and ac
 ### Power Chart
 Interactive historical trend: multiple pens, zoom and pan, time range selection, runtime pen configuration.
 
+With the **Core Historian on 8.3.9** the Power Chart's history query failed: the Gateway logged a QuestDB `UnsupportedOperationException` ("Error querying historical nodes") and the component showed an error **[live 8.3.9]**. A Time Series Chart or a third-party chart fed by a Tag History binding worked. Test the Power Chart against your historian before designing around it.
+
+### Time Series Chart
+- The axis tick format must be `Auto` or a valid d3 format. A Java-style pattern such as `0,0.#` makes the chart show "invalid format" **[live 8.3.9]**.
+
+### Tag History binding
+- **Dynamic tag paths.** An expression inside the `tags` list did not work. Use IA's pattern instead:
+  - build an array of `{"path", "alias", "aggregate"}` in a custom property;
+  - set `"tags": "{this.custom.pens}"` **[live 8.3.9]**.
+- **Chart.js-ready data.** `"valueFormat": "document"` returns `[{"t_stamp": ms, "<alias>": value}, ...]`. `"returnSize": {"type": "raw"}` gives the stored points. Polling is a string in seconds (`"rate": "60"`) **[live 8.3.9]**.
+
+### Third-party chart and layout modules
+Free modules (MIT) from Musson Industrial's Embr project, used on 8.3.9 **[live 8.3.9]**:
+- **Embr Charts** (`embr.chart.chart-js`): the props are the Chart.js config (`type`, `data`, `options`, plugins including annotation, zoom and the `timestack` time scale).
+  - Any prop value that starts with `var(--` is resolved at render time, so charts follow the theme tokens.
+  - A `document` Tag History binding feeds a dataset directly with `parsing: {"xAxisKey": "t_stamp", "yAxisKey": "<alias>"}`, with no script transform.
+- **Embr Periscope**:
+  - Flex Repeater+ (`embr.periscope.embedding.flex-repeater`): each instance names its own view (`[{"viewPath", "viewParams"}]`, plus `instanceCommon` and `settings`), so no dispatcher view is needed to pick a card per UDT type.
+  - Embedded View+ (`embr.periscope.embedding.view`).
+  - Toasts through `system.perspective.runJavaScriptAsync(fn, args)`. Keep the JavaScript a fixed string in a project library, and pass the message only in `args` (HTML in a message then shows as text). Never build JavaScript from data or user input.
+- Both declare Maker support in their Gateway hooks. Installing them: see `ignition-config/references/docker.md` (derived image).
+
 ### Sparkline
 Minimal line chart of recent history for one datapoint. Bind `points` to a two-column dataset (date, then number) sorted ascending by time, from a history or Named Query binding. Set `desired.high` and `desired.low` to draw the expected operating band; that band is an ISA-101 friendly way to show "in range" without color on the value.
 
@@ -324,6 +346,10 @@ Page properties written by the client **[observed in the 8.3.9 client]**:
 - `page.props.urlParams`: the query string as a map, written once when the page starts.
 - `page.props.dimensions.viewport.width` and `.height`: the document's client width and height, rewritten on resize with a 100 ms debounce, and on scroll. Bind responsive layout to them, for example `try({page.props.dimensions.viewport.width}, 1024) < 768` **[live 8.3.9]**.
 - `page.props.appBarVisible`.
+
+### Property change scripts (`onChange`)
+- In a property's `onChange` script, nested entries of `currentValue.value` arrive as qualified values: subscripting or iterating them raised "ImmutableQualifiedValue ... unsubscriptable" **[live 8.3.9]**. Read the property itself (`self.custom.x`), which gives plain lists and dicts.
+- A time-based "only new since the page opened" filter needs the open time in a custom property (for example `toMillis(now(0))`), not a page startup event.
 
 ### Event actions (view.json)
 

@@ -176,6 +176,17 @@ Check `lastScanTimestamp` moved after your `POST` to confirm the scan ran. API k
 
 **Pass:** the Gateway logs show the project or config reload with no errors for the resources you changed.
 
+Right after a config scan, `GET /data/api/v1/tags/export` for a provider can briefly return nothing (and log a route error) while the provider reloads. Retry after a few seconds before calling a check failed **[live 8.3.9]**.
+
+### Reading live values on a local test Gateway
+
+The REST API exports tag configuration, not values. On a **local, disposable test Gateway only** (never a live one without explicit confirmation), a temporary diagnostic tag can log values, active alarms and warnings. Steps:
+1. Import a tag through `POST /data/api/v1/tags/import`. It is an expression tag `now(20000)` whose `valueChanged` event script calls `system.tag.readBlocking` and `system.alarm.queryStatus` and logs the result.
+2. Read the result from the container log.
+3. Delete the tag file and run a config scan afterwards.
+
+Write it into a gitignored location: the import writes into the `core` collection. Used this way to test alarm scenarios, including the "no data yet" case, end to end **[live 8.3.9]**.
+
 ---
 
 ## Stage 4b: Render check in a headless browser (views)

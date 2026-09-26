@@ -28,6 +28,36 @@ Behaviour of the official `inductiveautomation/ignition` image. Items marked **[
 - Maker: do not set `GATEWAY_MODULES_ENABLED`. IA forum staff report it causes "Not eligible for use with Ignition Maker Edition" (IGN-14320).
 - Leased licences need internet access; after the timeout (72 h for licences created from 20 July 2026) the Gateway reverts to trial mode **[IA docs]**.
 
+## Third-party modules in a derived image
+
+Pattern that booted cleanly from a fresh clone with two free modules (Embr Charts and Embr Periscope) **[live 8.3.9]**:
+
+```dockerfile
+ARG IGNITION_VERSION=8.3.9
+FROM inductiveautomation/ignition:${IGNITION_VERSION}
+# Pin every module by SHA-256: the build fails if the download changes.
+ADD --chmod=644 --checksum=sha256:<sha256> https://github.com/<owner>/<repo>/releases/download/<tag>/<file>.modl \
+    /usr/local/bin/ignition/user-lib/modules/<file>.modl
+```
+
+```yaml
+services:
+  ignition:
+    image: myproject/ignition:8.3.9-modules
+    build: {context: services/ignition/image}
+    pull_policy: build
+    environment:
+      # Module IDs, comma-separated. Without both, first boot stops at a "modules" commissioning step.
+      ACCEPT_MODULE_LICENSES: com.example.module.one,com.example.module.two
+      ACCEPT_MODULE_CERTS: com.example.module.one,com.example.module.two
+```
+
+- **Commissioning stall.** Without `ACCEPT_MODULE_LICENSES` / `ACCEPT_MODULE_CERTS`, a scripted first boot hangs: the key-creation step gets HTTP 302 and the log shows "Resources needing commissioning: modules" **[live 8.3.9]**. These variables are not `GATEWAY_MODULES_ENABLED`, which breaks Maker (above).
+- **Module status over REST.** `GET /data/api/v1/modules/healthy` and `/modules/quarantined` (read-only key) show whether each module loaded **[live 8.3.9]**. Check both in the stack smoke test.
+- **No uninstall from the UI.** A module baked into the image cannot be removed from the web UI. Change the Dockerfile and rebuild.
+- **Building needs internet** access to the download host.
+- **Maker Edition.** A Maker Gateway only runs modules whose Gateway hook returns `true` from `isMakerEditionCompatible()`. The SDK default is `false`, and `freeModule` / `isFreeModule()` only covers licensing (no trial). So before adopting a module for a Maker project, read its Gateway hook, or ask the vendor. **(verify on a Maker Gateway: this comes from module source and IA forum reports, not a Maker test here.)**
+
 ## Mounting version-controlled config
 
 Pattern that booted cleanly from a fresh clone in two deployment modes (IA's "curated mounts" layout) **[live 8.3.9]**:
