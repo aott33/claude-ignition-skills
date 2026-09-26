@@ -192,6 +192,16 @@ From the home-ignition project (reference tags into MQTT Engine, simulated data)
 - **Per-type alarm priority:** `"priority": {"bindType": "Expression", "value": "{OfflinePriority}"}` with a string parameter. The parent defaults it to `Low` and a child sets `High`; the active alarms showed the right priority for each. A bound `ackMode` was accepted, but its effect was not tested.
 - **Instance overrides** of member values go in the instance's `tags` list, and need `tagType`: `"tags": [{"name": "HighLimit", "tagType": "AtomicTag", "value": -12.0}]`. To keep them in git when they are written from the Designer or API, set the provider's Value Persistence to `Configuration`.
 - **Last-seen and offline detection:** `LastSeen` expression `{[.]LinkQuality.Timestamp}` (a `.Timestamp` property reference), and `Online` expression `dateDiff({[.]LastSeen}, now(60000), "min") < {OfflineMinutes}`. `dateDiff` units: `ms`, `second`/`sec`, `minute`/`min`, `hour`/`hr`, `day`, `week`, `month`, `year` (IA docs).
+- **UDT parameters in expressions are references, not text substitution.** `{Description}` returns the parameter's value; `'{Description}'` (quoted) stays the literal text `{Description}` **[live 8.3.9]**. So a string member is `"expression": "{Description}"`.
+- **Expression functions that tripped us** **[live 8.3.9]**:
+  - There is no `dateParse`. Use `toDate('2026-09-01 00:00:00')`: `toDate` parses `yyyy-MM-dd HH:mm:ss`, so append ` 00:00:00` to a date.
+  - `fromMillis(x)` logs a WARN on every evaluation when `x` is null. With a `now(10000)` refresh that floods the Gateway log. Guard it: `if(isNull({[.]T}), null, fromMillis(toLong({[.]T} * 1000)))`. The `null` literal works.
+  - `dateDiff(null, now(), 'sec')` gives the tag an `Error_ExpressionEval` quality without logging. An alarm on a bad-quality tag does not activate, so a member with no data yet raises no alarm.
+- **Staleness from the payload, not the tag timestamp.** When a source publishes its poll time in the payload (for example Telegraf's `time`, Unix seconds), use it:
+  - `LastSeen` = `fromMillis(...)` of the poll time, guarded as above;
+  - `Fresh` = `dateDiff({[.]LastSeen}, now(10000), 'sec') < N`.
+  - Detection then does not depend on whether an unchanged value refreshes the tag timestamp.
+  - Alarm "device not responding" only on **fresh** data that says so (`{[.]Fresh} && {[.]PacketLoss} >= 100`), and put one "monitoring stopped" alarm on staleness. If the collector stops, every device does not go into alarm at once **[live 8.3.9, simulated data]**.
 - **History on members:** `historyEnabled`, `historyProvider`, `sampleMode` (`OnChange`, `Periodic`, `TagGroup`), `historicalDeadband` with `historicalDeadbandMode`, and `historyMaxAge`/`historyMaxAgeUnits`, or `historySampleRate`/`historySampleRateUnits` for periodic sampling. `system.historian.queryRawPoints` returned the stored points.
 
 ## Database-Driven Instantiation

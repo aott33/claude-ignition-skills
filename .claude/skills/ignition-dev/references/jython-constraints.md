@@ -219,3 +219,12 @@ Never hard-code passwords, tokens or keys. Read them from a secret provider with
 - https://www.docs.inductiveautomation.com/docs/8.3/appendix/scripting-functions/system-db/system-db-execScalar
 - https://www.docs.inductiveautomation.com/docs/8.3/appendix/scripting-functions/system-db/system-db-runPrepQuery
 - https://www.docs.inductiveautomation.com/docs/8.3/appendix/scripting-functions/system-secrets/system-secrets-readSecretValue
+
+## Embedding data in generated scripts
+
+Generators that write `view.json` scripts often embed a lookup table. `json.dumps(table)` pasted into Jython source breaks it: `true`, `false` and `null` are not Python names, so the script fails at runtime and the binding shows a quality error **[live 8.3.9]**. Embed a JSON **string** and decode it at runtime:
+
+```python
+# generator (CPython): code = "\ttable = system.util.jsonDecode(" + json.dumps(json.dumps(TABLE)) + ")\n"
+table = system.util.jsonDecode("{\"LeakSensor\": [[\"Wet\", true]]}")
+```

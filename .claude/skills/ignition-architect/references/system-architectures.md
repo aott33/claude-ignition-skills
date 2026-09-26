@@ -219,6 +219,17 @@ Event Streams are project resources that move event data through stages: **Sourc
 - **Key device publish rights to `${{username}}`, not `${{clientid}}`** (HiveMQ File RBAC). A rule on the client ID let a device user connect with another client ID and publish under another device's prefix; keyed to the username it could not (tested with HiveMQ CE 2026.5).
 - **MQTT Engine with a custom namespace only:** disable the Default namespace's Sparkplug B. Otherwise Engine subscribes to `spBv1.0/#`; a broker that denies that drops the connection, and Engine does not reconnect (Cirrus docs and forum; not yet tested live).
 - **HiveMQ CE:** the Docker image allows anonymous clients (allow-all extension) unless `HIVEMQ_ALLOW_ALL_CLIENTS` is set to anything but `true`. The entrypoint then deletes the extension (verified in the 2026.5 image).
+- **Network and UPS monitoring without an Ignition module** (home-ignition, lab-tested on 8.3.9):
+  - A Telegraf container polls ping, SNMPv3 and NUT (`upsd` for USB UPSes) and publishes JSON to the broker; MQTT Engine's custom namespace turns it into tags.
+    - Use `outputs.mqtt` with `layout = "non-batch"`, `data_format = "json"` and `json_transformation = '$merge([fields, {"time": timestamp}])'`.
+    - The topic can come from a template: `{{ .Name }}/{{ .Tag "device" }}`.
+  - Keep every path read-only:
+    - an SNMPv3 `authPriv` user with a read view and no write view;
+    - no NUT user for the collector (commands need a login);
+    - `upsd` on 127.0.0.1;
+    - a broker user that may publish only under its own prefix.
+  - Telegraf 1.38+ uses strict environment handling: `${VAR}` is substituted in values but **not in TOML keys**, so an address-to-name lookup table cannot come from environment variables. Use one input block per device with a `device` tag (tested with 1.40.1).
+  - Pass passwords as Docker secrets (`[[secretstores.docker]]`, `@{docker:<name>}`).
 - An alarm pipeline's **Event Stream Source** block feeds an Event Stream with an Event Listener source (alarm-related; engineering review).
 - Handlers run in order; the Buffer can batch events and has a max queue size (0 = unlimited).
 

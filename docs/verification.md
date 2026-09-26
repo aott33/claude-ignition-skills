@@ -225,3 +225,33 @@ Not added, for lack of evidence:
 - The claim that neither a Gateway restart nor the REST API resets an expired trial. The 8.3.9 `/openapi` lists only `GET /data/api/v1/trial`, but ign's own documentation describes a POST-based reset of an expired trial, and neither was tested here.
 - A build-agent claim that alarm table schema defaults "only arrive if the Designer wrote them". The live render contradicted it.
 - Linear Scale default pixel size.
+
+## Fifth verification: home-ignition trends, third-party modules, network and UPS monitoring (2026-09-26)
+
+home-ignition PRs 6 and 7 on the same 8.3.9 image (trial, `dev` mode):
+- trends on Embr Charts, Embr Periscope toasts and repeaters, baked into a derived Gateway image;
+- Telegraf and NUT monitoring with five new UDTs.
+
+How the findings were sourced:
+- Every alarm scenario was driven through the dev simulation and read back from the Gateway with a temporary diagnostic tag.
+- Pages were rendered headless at 390 px and 1440 px.
+- The fresh-clone boot was repeated with the derived image.
+- Telegraf was tested end to end through HiveMQ against a lab NUT dummy UPS and a net-snmp SNMPv3 agent. **Not tested:** real network devices, a real UPS, and a Maker Gateway.
+
+| Finding | Where it went |
+|---|---|
+| Third-party modules in a derived image: `ADD --checksum`, `ACCEPT_MODULE_LICENSES` / `ACCEPT_MODULE_CERTS` or first boot stalls in commissioning, module health over REST, no UI uninstall | `ignition-config/references/docker.md` |
+| Maker only runs modules whose hook returns `isMakerEditionCompatible() == true`; `freeModule` is licensing only (from module source; verify on Maker) | `docker.md` |
+| Power Chart with the Core Historian failed on 8.3.9 (QuestDB `UnsupportedOperationException`); Time Series Chart tick format must be Auto or d3 | `ignition-ui/references/perspective-components.md` |
+| Tag History binding: dynamic paths through a custom `pens` array; `valueFormat: document` feeds Chart.js directly | `perspective-components.md` |
+| Embr Charts and Periscope usage; `runJavaScriptAsync` only with fixed code and data arguments | `perspective-components.md` |
+| `onChange` scripts: nested `currentValue` entries are qualified values; read `self.custom.*` | `perspective-components.md` |
+| `json.dumps` data embedded in generated Jython breaks on `true`/`false`; embed a string and `system.util.jsonDecode` it | `ignition-dev/references/jython-constraints.md` |
+| UDT parameters in expressions are references (`{P}`, not `'{P}'`); no `dateParse` (use `toDate`); `fromMillis(null)` warns on every evaluation (guard with `if(isNull(..), null, ..)`); `dateDiff(null, ..)` gives bad quality and no alarm | `ignition-architect/references/tag-structure.md` |
+| Staleness from a payload poll time; device alarms only on fresh data, one "monitoring stopped" alarm on staleness | `tag-structure.md` |
+| Telegraf to MQTT pattern for network and UPS monitoring; strict env handling skips TOML keys; read-only at every hop | `ignition-architect/references/system-architectures.md` |
+| Tag export can be empty right after a config scan; diagnostic tag for reading values on a local test Gateway | `ignition-dev/references/validation-workflow.md` |
+
+Not added, for lack of evidence:
+- Whether the Mustry Designer Dark Mode and Perspective Components modules load on Maker. Their hooks do not override `isMakerEditionCompatible()`, so they probably will not, but this was not tested.
+- Real-device SNMP details: CBS220 `ifName` format, OPNsense SNMPv3 UI behaviour.
