@@ -186,3 +186,42 @@ Epic 5 of home-ignition (UDTs, history, alarms, a simulated MQTT Engine provider
 | HiveMQ File RBAC: key device publish rights to `${{username}}`; a `${{clientid}}` rule allowed publishing under another device's prefix | `system-architectures.md` |
 
 The home stack's `scripts/test-stack.sh` passed in both modes. It now also fails if a tracked config file contains a password or an Embedded secret.
+
+## Fourth verification: home-ignition epic 7 Perspective HMI (2026-09-26)
+
+Epic 7 of home-ignition built a Perspective HMI on the same 8.3.9 image (trial, `dev` mode):
+- custom themes, style classes and an Advanced Stylesheet;
+- a custom icon library;
+- page-config with shared docks;
+- symbol and page views.
+
+How the findings were sourced:
+- An independent verifier rendered every route in headless Chromium at 390x844 and 1440x900 (768x1024 for spot checks), in the day and night themes, including a leak alarm, acknowledge and clear scenario. It read the served CSS and computed styles, and fixed what it found.
+- Facts read from the 8.3.9 Perspective module (Java classes, bundled JSON schemas, client JavaScript and CSS) are labelled "observed in the 8.3.9 module/client" in the skills, because they are not a documented API.
+- Build-agent claims that were neither verified live nor visible in the working project were left out.
+
+| Finding | Where it went |
+|---|---|
+| A style class inside a folder that is itself a style class is silently skipped, with no log line. The nav highlight and secondary icon colour never rendered until the parents became leaves (`.../menu`, `.../primary`) | `ignition-ui/references/perspective-styles.md`, `ignition-ui/SKILL.md` |
+| Style class on-disk format (`style.json` = `base` + `variants` with `pseudo`, `media`, `animation`); grouping folders need no `resource.json`; the module's `style-class-schema.json` is a different layout | `perspective-styles.md` |
+| Served style-class CSS: Advanced Stylesheet first, then classes sorted by their CSS text (name order, animated classes last); `.psc-` prefix with `/` escaped; keyframes `psc-<path>-anim` | `perspective-styles.md` |
+| Only the 68 `StyleAttribute` keys reach the CSS (no `gap`, `display`, `width`, `height`, `min-*`); `fontVariant: tabular-nums` works | `perspective-styles.md`, `ignition-ui/SKILL.md` |
+| An animated variant writes no `style` block; animation defaults (direction `alternate`); an animation beats inline colours | `perspective-styles.md`, `perspective-components.md` |
+| Alphabetical class order makes state classes lose; a doubled selector in the Advanced Stylesheet makes them win | `perspective-styles.md` |
+| Themes: imports flattened, comments stripped, served uncompressed and uncached at `/data/perspective/themes/<theme>.css`; hand-written `resource.json` accepted; animating `@property` values on `:root` recalculates style every frame | `perspective-styles.md` |
+| Base-theme chrome (tooltip, pager, filter pills) keeps base greys unless the theme maps all `--neutral-*` values; Noto Sans ships only 400/500/700, so 600 renders as 700; font resource type | `perspective-styles.md` |
+| Session theme from `session-props/props.json`; `?theme=` through `page.props.urlParams` and an `onChange` script (a page startup event cannot read it) | `perspective-styles.md` |
+| Alarm Status Table: `rowStyles` entries with only `classes` still get the schema's default colours inline (a solid blue bar for Cleared-Unacked); set explicit `var(--...)` colours on every entry of all four states. Flagged as an alarm presentation change for engineering review | `ignition-ui/references/perspective-components.md` |
+| Table body cells have zero padding; `props.cells.style` padding lines them up with the headers. Label ellipsis clipped text at 390px | `perspective-components.md`, `validation-workflow.md` |
+| Component ids and full schemas come from `ia.components.json` in `Perspective-module.modl`; Flex Container has no `gap`; Flex Repeater, Label, Linear Scale, page-config and dock keys, client action types, view JSON keys, binding and transform ids | `perspective-components.md`, `validation-workflow.md` |
+| Alarm Metrics bindings on UDT instances; `[System]Gateway/Alarming/*` counts as triggers; `EventData.getTimestamp()` is already epoch ms (`.getTime()` raised an error that a broad `except` hid) | `perspective-components.md` |
+| Icon library resource format, sprite rules, colouring through CSS `color`, missing icon = page error, sessionStorage quota, SVG masks under `display:none` | new `ignition-ui/references/icon-libraries.md` |
+| Headless render check: anonymous client URL, what to check (page errors, DOM error placeholders, quality overlays, bad values, served CSS and computed styles, clipping), screenshots; trial status route | `ignition-dev/references/validation-workflow.md` Stage 4b |
+| Offline Jython check with `jython-standalone` 2.7.4; `lib2to3` accepted f-strings and annotations, so it is not a Jython check | `validation-workflow.md` Stage 1, `ignition-dev/SKILL.md` |
+
+The `ignition-ui` alarm rules (ISA-101 colours, blink only for unacknowledged Critical, engineering review for alarm presentation) are unchanged.
+
+Not added, for lack of evidence:
+- The claim that neither a Gateway restart nor the REST API resets an expired trial. The 8.3.9 `/openapi` lists only `GET /data/api/v1/trial`, but ign's own documentation describes a POST-based reset of an expired trial, and neither was tested here.
+- A build-agent claim that alarm table schema defaults "only arrive if the Designer wrote them". The live render contradicted it.
+- Linear Scale default pixel size.

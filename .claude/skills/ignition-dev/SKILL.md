@@ -141,6 +141,6 @@ Details: [references/validation-workflow.md](references/validation-workflow.md).
 4. Scan projects and/or config, then check the Gateway logs.
 5. Designer check with live tags.
 
-Steps and tools: [references/validation-workflow.md](references/validation-workflow.md). Parallel agents: [references/parallel-dev.md](references/parallel-dev.md).
+Steps and tools: [references/validation-workflow.md](references/validation-workflow.md). It also covers the headless render check for views and the offline syntax check with Jython 2.7.4 (Python 3's `lib2to3` accepts f-strings, so it is not a Jython check). Parallel agents: [references/parallel-dev.md](references/parallel-dev.md).
 
 $ARGUMENTS
