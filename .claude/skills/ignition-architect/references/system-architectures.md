@@ -211,6 +211,12 @@ Event Streams are project resources that move event data through stages: **Sourc
 | | Tag |
 
 - MQTT and Sparkplug are not built-in Event Stream sources; use MQTT modules or tags for those.
+
+### MQTT ingest (plain JSON, non-Sparkplug)
+
+- **MQTT Engine:** Cirrus Link MQTT Engine (8.3 builds v5.x) connects to third-party brokers. Its **Custom Namespaces** turn plain JSON topics (for example from Zigbee2MQTT or ESPHome) into tags. It also adds MQTT and Sparkplug Event Stream sources. IA lists Cirrus Link modules as supported on Maker Edition.
+- **Enforce read-only at the broker too:** give Ignition's MQTT user a role that can only SUBSCRIBE to sensor topics. With the HiveMQ File RBAC extension, a publish by that user to a device command topic (for example `zigbee2mqtt/+/set`) was dropped and the connection closed. The command never reached subscribers (tested with HiveMQ CE 2026.5). This backs up a "monitoring only" scope independently of Ignition permissions.
+- **HiveMQ CE:** the Docker image allows anonymous clients (allow-all extension) unless `HIVEMQ_ALLOW_ALL_CLIENTS` is set to anything but `true`. The entrypoint then deletes the extension (verified in the 2026.5 image).
 - An alarm pipeline's **Event Stream Source** block feeds an Event Stream with an Event Listener source (alarm-related; engineering review).
 - Handlers run in order; the Buffer can batch events and has a max queue size (0 = unlimited).
 

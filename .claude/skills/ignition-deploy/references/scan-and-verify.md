@@ -123,7 +123,7 @@ When an API route is not available or not verified on your Gateway:
 
 ## Bind-mount ownership
 
-On a live 8.3.9 official Docker image, files written into a bind-mounted config folder had to be owned by the Gateway's user (uid 2003) or the Gateway faulted with "unable to create resource dir" **[live 8.3.9]**. After copying files into a mount, check ownership before scanning.
+On a live 8.3.9 official Docker image, files written into a bind-mounted config folder had to be owned by the Gateway's user (uid 2003) or the Gateway faulted with "unable to create resource dir" **[live 8. Alternatively run the Gateway as the repo owner with `IGNITION_UID`/`IGNITION_GID`, which needs the container to start as root; see `../../ignition-config/references/docker.md`.3.9]**. After copying files into a mount, check ownership before scanning.
 
 ## Sources
 

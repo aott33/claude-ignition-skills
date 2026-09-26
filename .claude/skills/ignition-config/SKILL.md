@@ -54,5 +54,6 @@ Inheritance order: `system`, then `external`, then `core`, then the active user-
 | IA's four version control layouts and post-pull steps | `references/version-control.md` |
 | A `.gitignore` for a repo rooted at `data/` | `references/gitignore.sample` |
 | REST API, OpenAPI, API key header, scan and resource routes | `references/rest-api.md` |
+| Docker: image arguments, `IGNITION_UID`, licence files, mounting `external` and mode folders, first-boot behaviour | `references/docker.md` |
 | Secrets, API key handling, agent guard rails | `../ignition-security/SKILL.md` |
 | Deploy workflow with curl examples | `../ignition-deploy/references/scan-and-verify.md` |

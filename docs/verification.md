@@ -148,3 +148,23 @@ Caveat added: anonymous access to Ignition's OPC UA server is off by default. IA
 | Knowledge spot checks | 28 of 30 correct; 2 wrong and 1 unsupported, all fixed |
 | Open questions from the change map | All resolved live except `system.historian.queryValues` (left out of the skills) |
 
+
+## Second verification: home-ignition Docker stack (2026-09-25)
+
+While building the [home-ignition](https://github.com/aott33/home-ignition) Compose stack, a second live run on the same image (`inductiveautomation/ignition:8.3.9`, trial) confirmed or found the following. All of it is now in the skills.
+
+| Finding | Where it went |
+|---|---|
+| `IGNITION_UID`/`IGNITION_GID` only work when the container starts as root (`user: "0:0"`); otherwise it runs as uid 2003 | `ignition-config/references/docker.md` |
+| An empty licence `_FILE` crashes the Gateway (NPE in `EnvironmentVariable.resolveEnvVarFile`), in any edition | `docker.md` |
+| A pre-filled `external` folder needs `config-mode.json` (`"parent": "system"`), or the Gateway faults ("exists but is not empty") | `docker.md`, `collections-and-modes.md` |
+| Mounting a collection `:ro` makes the entrypoint's `chown` fail and the container restart-loop | `docker.md` |
+| A partially committed `core` breaks default resources; keep `core` per Gateway, version `external` + mode folders | `docker.md`, `version-control.md` |
+| First boot rewrites the active mode's `security-properties` | `docker.md`, `api-keys.md` |
+| `core` overrides `external`, so singleton settings that must win go in the mode folder | `collections-and-modes.md` |
+| API keys cannot hold role levels ("cannot be granted via config"); custom `Authenticated/ApiKeys/*` levels work; keys in `local` work | `ignition-security/references/api-keys.md` |
+| Default permissions on a fresh Gateway: Access open, Read and Write `Authenticated/Roles/Administrator` | `api-keys.md` |
+| Tested nginx layout: only Perspective exposed; `/app`, `/openapi*`, `/data/api/`, `/system/webdev/`, `/system/eventstream/`, `/StatusPing`, `/Start` denied | `ignition-security/references/reverse-proxy.md` |
+| HiveMQ CE Docker image removes allow-all unless `HIVEMQ_ALLOW_ALL_CLIENTS=true`; broker RBAC blocked Ignition from publishing device commands | `ignition-architect/references/system-architectures.md` |
+
+The home stack's own smoke test (`scripts/test-stack.sh`, 30 checks) passed from a clean clone.

@@ -14,7 +14,7 @@ Collections form an inheritance chain. A child takes its starting resources from
 | 2 | `external` | Centrally managed configuration, changed only through the filesystem in the data directory. IA: "if you are using a version control system (VCS), this collection is where your VCS should place any relevant resources" | No. Read-only in the Gateway |
 | 3 | `core` | Child of `external`. The default: a fresh Gateway, or one without modes, runs in `core`. Modes and overrides are usually created from here | Yes |
 | 4 | `<mode>` | User-created deployment modes, for example `Dev`, `Test`, `Prod` | Yes |
-| n/a | `local` | Data essential to this host, for example certificate details. Modes do **not** inherit anything from `local`, but use it to run on each machine | Yes |
+| n/a | `local` | Data essential to this host, for example certificate details. Modes do **not** inherit anything from `local`, but use it to run on each machine. On a live 8.3.9 Gateway its manifest was `"parent": "<active mode>", "inheritable": false`, and API keys placed there worked | Yes |
 
 **Changed in 8.3.7:** `local` can also hold resource definition overrides. Because of what `local` is, these overrides **do not carry over to a redundant backup Gateway**. Use them only for settings that must differ per machine.
 
@@ -22,7 +22,8 @@ Collections form an inheritance chain. A child takes its starting resources from
 
 | Situation | Put it in |
 |---|---|
-| Config delivered by git or a GitOps controller and never edited on the Gateway | `external` |
+| Config delivered by git or a GitOps controller and never edited on the Gateway | `external` (needs its `config-mode.json` manifest; see `docker.md`) |
+| A singleton setting that must win over what a fresh Gateway generates in `core` (for example `security-properties`) | The mode folder: `core` overrides `external` |
 | Normal Gateway config on a Gateway without modes | `core` |
 | A value that differs between environments (device address, DB connection, Gateway Network settings) | An override in the environment's mode |
 | A value that differs per physical machine and must not follow a backup | `local` (8.3.7+) or a redundancy backup version (below) |

@@ -39,7 +39,7 @@ The default encryption key is the same on every Ignition install. Recommend opti
 
 ## API keys at a glance
 
-Created on Platform > Security > API Keys. The key is shown **once**; the Gateway stores only a hash. Default level is `Authenticated` (cannot be removed); "Require secure connections" is on by default. Keys are resources, so they can be overridden per deployment mode. Header: `X-Ignition-API-Token`. Details and least-privilege recipes: `references/api-keys.md`.
+Created on Platform > Security > API Keys. The key is shown **once**; the Gateway stores only a hash. Default level is `Authenticated` (cannot be removed); "Require secure connections" is on by default. Keys are resources, so they can be overridden per deployment mode. Header: `X-Ignition-API-Token`. **Keys cannot hold role levels** (`Authenticated/Roles/...`); use custom levels such as `Authenticated/ApiKeys/Reader` (live 8.3.9). Details and least-privilege recipes: `references/api-keys.md`.
 
 ## IEC 62443 framing for agent tooling
 
@@ -68,5 +68,6 @@ Treat an AI agent, its MCP servers and its API keys as a separate actor inside t
 | Secret providers, `system.secrets` signatures, `PyPlaintext`, JWE | `references/secrets.md` |
 | Creating and handling API keys | `references/api-keys.md` |
 | Claude Code guard rails for Gateways | `references/agent-guardrails.md` |
+| Exposing Perspective through a reverse proxy (tested nginx deny list, Keycloak OIDC) | `references/reverse-proxy.md` |
 | Example Claude Code settings | `references/claude-settings.example.json` |
 | REST API routes and permissions | `../ignition-config/references/rest-api.md` |
