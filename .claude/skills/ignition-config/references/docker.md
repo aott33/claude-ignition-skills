@@ -30,16 +30,17 @@ Behaviour of the official `inductiveautomation/ignition` image. Items marked **[
 
 ## Mounting version-controlled config
 
-Pattern that worked (IA's "curated mounts" layout):
+Pattern that booted cleanly from a fresh clone in two deployment modes (IA's "curated mounts" layout) **[live 8.3.9]**:
 
 ```yaml
 volumes:
-  - ignition-data:/usr/local/bin/ignition/data            # core, local, var, db live here
-  - ./config/resources/external:/usr/local/bin/ignition/data/config/resources/external
-  - ./config/resources/${MODE}:/usr/local/bin/ignition/data/config/resources/${MODE}
+  - ignition-data:/usr/local/bin/ignition/data                          # db, var, logs, keys
+  - ./config/resources:/usr/local/bin/ignition/data/config/resources    # core, <mode>, external, local
   - ./projects:/usr/local/bin/ignition/data/projects
-command: -n gw -- -Dignition.config.mode=${MODE}
+command: -n gw-${MODE} -- -Dignition.config.mode=${MODE}
 ```
+
+**Commit `core`.** It is the shared base every deployment mode inherits. IA: "Deployment modes and resource definition overrides are typically created from core", and both examples in IA's Version Control Guide track it. Gitignore `local/`, `.resources/` and `migration-log-*.md`, plus the per-Gateway `core` resources in rule 4 (all listed in `gitignore.sample`).
 
 Observed rules **[live 8.3.9]**:
 
@@ -49,11 +50,21 @@ Observed rules **[live 8.3.9]**:
    {"title": "External", "description": "Externally managed configuration", "enabled": true, "inheritable": true, "parent": "system"}
    ```
 3. **Committed mode folders work:** `<mode>/config-mode.json` with `"parent": "core"` is picked up at boot, and `-Dignition.config.mode=<mode>` selects it ("Config mode set to ..." in the log).
-4. **Do not commit or pre-seed a partial `core`.** On a fresh volume with a partial `core`, the Gateway skipped default resources: no built-in OPC UA connection, and a user source named `temp` instead of `default`. It also logged migration errors, and resources whose data files were left out (for example `users.json`) failed to load. Let each Gateway generate its own `core` in the volume. Version shared resources in `external` and per-environment overrides in mode folders.
+4. **Leave these `core` resources out of git; each Gateway creates them on first boot.** With them ignored, a fresh clone booted in `dev` and in `prod` with 0 errors, and first boot changed no committed file.
+   - Credentials: `ignition/user-source/` (password hashes), `ignition/identity-provider/temp/`, and `ignition/opc-connection/`. The built-in OPC UA connection password is an Embedded secret encrypted with that Gateway's own key.
+   - `ignition/system-properties/` (holds the Gateway name set by `-n`).
+   - `ignition/gateway-network-queue-settings/`, `ignition/gateway-network-proxy-rules/` and `ignition/quickstart/`. First boot migrates the image's seed settings into these. If they are committed, it logs `Error migrating table ...` with `PushConflictException: CREATE conflict ... already exists` on every start.
+   - `com.inductiveautomation.opcua/one-time/`. If committed, the OPC UA module skips creating its `opcua-module` user source and the `Ignition OPC UA Server` connection.
+   - Committing everything except these is what works. An earlier attempt that committed only part of `core` failed for the reasons above.
 5. **First boot overwrites the active mode's `security-properties`** with defaults, even when the committed file differs. Restore it from git after the first boot (`git checkout -- <mode folder>`) and restart.
-6. `core` is the child of `external`, so a resource the Gateway generates in `core` at first boot overrides the same resource in `external`. This happened with `security-properties`. Put singleton settings that must win into the **mode** folder, below `core`.
+6. **`core` ranks above `external`,** so a resource the Gateway generates in `core` hides the same resource in `external`.
+   - Seen with `security-properties`: put singleton settings that must win into the **mode** folder.
+   - Seen with UDT definitions: every start creates an empty `tag-type-definition/<provider>` resource in `core`, and it comes back after deletion. UDT definitions committed to `external` therefore never load. Keep tags and UDTs in `core`.
 7. The `local` collection's manifest has `"parent": "<active mode>"` and `"inheritable": false`. Resources placed there, such as API keys, take effect.
-8. Edits made in the Gateway web UI land in `core` (the volume), not in git. Move them to `external` or a mode folder to version them ("Move Definition" in the Gateway, or copy the files), then scan.
+8. **Edits made in the Gateway web UI, the Designer or the tag import API land in `core`,** which with this layout is the git working tree. Review them with `git diff`. The tag import API writes to `core` even for a provider defined in a mode folder.
+9. **Memory-tag values need the provider's Value Persistence set to `Configuration`** to reach the files. With the default `Database`, a written value goes to `valueStore.idb` in the volume, and a fresh clone loses it. This includes UDT instance overrides of memory members such as alarm limits. Set `"valuePersistence": "Configuration"` in the tag provider's `config.json`; IA advises caution with fast-changing tags, because every write rewrites a file.
+10. **Resetting a Gateway:** `docker compose down -v` no longer clears its config. Also run `git clean -fdX config/resources`, which removes the generated, ignored files including `local` API keys. Otherwise the next first boot hits the CREATE conflicts in rule 4 and creates a duplicate `temp_0` identity provider.
+11. A fresh 8.3.9 Gateway has **no historian provider**. Create one (see `rest-api.md`) and commit it in `core`.
 
 ## Secrets as files
 
@@ -71,4 +82,5 @@ See `../../ignition-security/references/reverse-proxy.md` for a tested nginx lay
 - https://www.docs.inductiveautomation.com/docs/8.3/appendix/reference-pages/platform-environment-variables
 - https://www.docs.inductiveautomation.com/docs/8.3/platform/licensing-and-activation/leased-licensing
 - https://www.docs.inductiveautomation.com/docs/8.3/tutorials/version-control-guide
+- https://www.docs.inductiveautomation.com/docs/8.3/platform/gateway/web-interface/platform/gateway-deployment-modes
 - https://forum.inductiveautomation.com/t/109762 (Maker and `GATEWAY_MODULES_ENABLED`)

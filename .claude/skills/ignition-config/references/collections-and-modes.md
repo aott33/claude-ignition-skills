@@ -22,7 +22,8 @@ Collections form an inheritance chain. A child takes its starting resources from
 
 | Situation | Put it in |
 |---|---|
-| Config delivered by git or a GitOps controller and never edited on the Gateway | `external` (needs its `config-mode.json` manifest; see `docker.md`) |
+| Shared config for every environment, versioned in git (tags, UDTs, historian, connections, themes) | `core`, committed, minus the per-Gateway resources in `docker.md` rule 4 (IA's Version Control Guide examples track `core`) |
+| Guard rails the Gateway web UI must never change (for example API-key security levels) | `external` (read-only in the Gateway; needs its `config-mode.json` manifest; see `docker.md`). Not for anything the Gateway also generates in `core`, which ranks above it |
 | A singleton setting that must win over what a fresh Gateway generates in `core` (for example `security-properties`) | The mode folder: `core` overrides `external` |
 | Normal Gateway config on a Gateway without modes | `core` |
 | A value that differs between environments (device address, DB connection, Gateway Network settings) | An override in the environment's mode |

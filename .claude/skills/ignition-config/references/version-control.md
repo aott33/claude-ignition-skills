@@ -28,12 +28,15 @@ Deployment modes pair well with layouts 2 and 4: keep one config set and let the
 
 ## Layout 2 in practice (tested on 8.3.9)
 
-A Docker Compose stack that booted cleanly from a fresh clone mounted three things:
-- `config/resources/external` (shared, versioned resources, with its `config-mode.json` manifest);
-- the active mode folder `config/resources/<mode>` (per-environment overrides, including `security-properties`);
-- `projects`.
+A Docker Compose stack booted cleanly from a fresh clone, in both its `dev` and `prod` modes, with one bind mount for `config/resources` plus `projects`:
+- **`core` committed**: the shared base for every mode. Tags, UDTs, historian and default Gateway settings live here, and Gateway or Designer edits land directly in the working tree.
+- the mode folders (`dev`, `prod`): per-environment overrides, including `security-properties`;
+- `external`: read-only guard rails the web UI must not change (for example API-key security levels), with its `config-mode.json` manifest;
+- `local`, `.resources/` and a short list of per-Gateway `core` resources gitignored. The list and the reasons are in `docker.md` rule 4 and `gitignore.sample`.
 
-`core` stayed in the Docker volume and out of git: each Gateway generates its own, and a partially committed `core` caused missing defaults and load errors. Changes made in the Gateway web UI land in `core`, so move deliberate changes into `external` or a mode folder before committing. Mount details and first-boot behaviour: `docker.md`.
+IA's Deployment Modes page says of `external`: "if you are using a version control system (VCS), this collection is where your VCS should place any relevant resources". But `core` ranks above `external`, and the Gateway generates some resources in `core` on every start. UDT definitions committed to `external` were hidden that way. Use `external` only for resources the Gateway never generates in `core`.
+
+Guard: fail CI or a smoke test if a tracked config file holds credential material, for example `git grep -lE '"ciphertext"|"password" *: *"' -- config` must print nothing.
 
 ## Bootstrapping a second Gateway (layout 1)
 

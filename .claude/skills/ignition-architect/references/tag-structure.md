@@ -33,6 +33,8 @@ data/config/resources/core/ignition/
   tag-definition/default/Refrigeration/unary-resource.json
 ```
 
+Keep tags and UDT definitions in `core` (committed) or a mode folder, not in `external`: the Gateway generates an empty `tag-type-definition/<provider>` resource in `core` on every start, which hides definitions in `external` (`../../ignition-config/references/docker.md`).
+
 Editing `udts.json` in git and then running `POST /data/api/v1/scan/config` applied the change (an alarm deadband edit read back through `/data/api/v1/tags/export`). The alarm JSON in the next sections imported unchanged.
 
 - Deep folder trees and long names make long file paths. Windows limits paths to 255 characters, so keep ISA-95 folder names short.
@@ -166,6 +168,31 @@ Alarms are a list under the member tag's `alarms` property, using the scripting/
   - `Auto` is acceptable only for alarm classes your alarm rationalization explicitly approves for it (record the decision in the alarm's `notes` or the rationalization database). Changing `ackMode` is an alarm change and needs engineering review.
 - `shelvingAllowed` (Boolean) controls whether operators can shelve the alarm.
 - Summary displays read the **Alarm Metrics** folder (for example `ActiveCountCritical`, `HasActiveUnackedHigh`), which replaces the deprecated Alarms folder.
+
+### Patterns verified on a live 8.3.9 Gateway
+
+From the home-ignition project (reference tags into MQTT Engine, simulated data), imported and tested on 8.3.9:
+
+- **Inheritance:** a child `UdtType` sets `"typeId": "<ParentType>"` and lists only its own members and parameters. Instances of the child had the parent's members, parameters and alarms. A child can change a parent parameter's default by redeclaring it in its `parameters`.
+- **Reference members through one parameter:**
+
+  ```json
+  {"name": "Temperature", "tagType": "AtomicTag", "valueSource": "reference", "dataType": "Float8",
+   "sourceTagPath": {"bindType": "parameter", "binding": "{Source}/temperature"}}
+  ```
+
+- **Adjustable limits:** memory-tag members (`HighLimit`, `DelayMinutes`) with alarm properties bound by expression, the pattern from IA's "Alarms in UDTs" page:
+
+  ```json
+  "setpointA": {"bindType": "Expression", "value": "{[.]HighLimit}"},
+  "timeOnDelaySeconds": {"bindType": "Expression", "value": "{[.]DelayMinutes} * 60"}
+  ```
+
+  Tested: a 1.5 min `DelayMinutes` activated the alarm after about 90 s.
+- **Per-type alarm priority:** `"priority": {"bindType": "Expression", "value": "{OfflinePriority}"}` with a string parameter. The parent defaults it to `Low` and a child sets `High`; the active alarms showed the right priority for each. A bound `ackMode` was accepted, but its effect was not tested.
+- **Instance overrides** of member values go in the instance's `tags` list, and need `tagType`: `"tags": [{"name": "HighLimit", "tagType": "AtomicTag", "value": -12.0}]`. To keep them in git when they are written from the Designer or API, set the provider's Value Persistence to `Configuration`.
+- **Last-seen and offline detection:** `LastSeen` expression `{[.]LinkQuality.Timestamp}` (a `.Timestamp` property reference), and `Online` expression `dateDiff({[.]LastSeen}, now(60000), "min") < {OfflineMinutes}`. `dateDiff` units: `ms`, `second`/`sec`, `minute`/`min`, `hour`/`hr`, `day`, `week`, `month`, `year` (IA docs).
+- **History on members:** `historyEnabled`, `historyProvider`, `sampleMode` (`OnChange`, `Periodic`, `TagGroup`), `historicalDeadband` with `historicalDeadbandMode`, and `historyMaxAge`/`historyMaxAgeUnits`, or `historySampleRate`/`historySampleRateUnits` for periodic sampling. `system.historian.queryRawPoints` returned the stored points.
 
 ## Database-Driven Instantiation
 

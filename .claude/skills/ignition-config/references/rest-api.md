@@ -70,9 +70,13 @@ Permission: POST scans need a key whose level is in the Gateway's **Write** perm
 | Route | Purpose | Label |
 |---|---|---|
 | `POST /data/api/v1/encryption/encrypt` | Produce a JWE ciphertext for the File secret provider | IA docs (search "encryption" on `/openapi`) |
-| `GET /data/api/v1/tags/export` | Tag export; parameters `provider`, `path`, `type`, `recursive`, `includeUdts` | live 8.3.9 |
+| `GET /data/api/v1/tags/export` | Tag export; parameters `provider`, `path`, `type`, `recursive`, `includeUdts`. UDT definitions: `path=_types_` | live 8.3.9 |
+| `POST /data/api/v1/tags/import` | Tag import; parameters `provider`, `path`, `type` (`json`, `xml`, `csv`), `collisionPolicy` (`Abort`, `Overwrite`, `Rename`, `Ignore`, `MergeOverwrite`). Body is the export JSON; send `Content-Type: application/octet-stream` (without it the import fails with a `BoundPropertySet ... config is null` error). Returns `{"successCount", "failureCount", "failures"}`. Files are written to `core`, even for a provider defined in a mode folder. A write of a memory-tag value reaches the file only with the provider's Value Persistence set to `Configuration` | live 8.3.9 |
+| `POST /data/api/v1/resources/com.inductiveautomation.historian/historian-provider` | Create a historian provider. A fresh 8.3.9 Gateway has none. Body that worked: `[{"name": "Core", "enabled": true, "description": "...", "config": {"profile": {"type": "CoreHistorian"}, "settings": {}}}]`. Defaults written: `partitionInterval` `MONTH`, `dataDeduplication` false, maintenance `strategy` `NONE` (keep everything) | live 8.3.9 |
 | `GET /data/api/v1/gateway-info` | Gateway information | live 8.3.9 |
 | `POST /data/api/v1/resources/com.inductiveautomation.perspective/themes/copy-base-themes` | Copy base `light` and `dark` themes into `core` for reference (token needs write permission; edits to the copies are ignored) | IA docs |
+
+**Not available over REST [live 8.3.9]:** reading live tag values or active alarms. The only alarm routes are the alarm-notification pipeline routes. To check values without the Designer, use a Gateway-scope script that logs `system.tag.readBlocking`, `system.alarm.queryStatus` and `system.historian.queryRawPoints` results on a local test Gateway (for example a temporary tag's value-change script), or an MCP tool that can read tags.
 
 ## Rules for agents
 

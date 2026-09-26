@@ -132,8 +132,8 @@ Gateway configuration is on the filesystem, not in the internal SQLite DB (the o
 
 ```
 data/config/resources/system/     built-in, immutable (can be overridden)
-data/config/resources/external/   read-only from the Gateway; VCS-managed resources go here
-data/config/resources/core/       default collection; edited from the Gateway web UI
+data/config/resources/external/   read-only from the Gateway; guard rails the web UI must not change
+data/config/resources/core/       default collection and shared base; commit it (minus per-Gateway files)
 data/config/resources/<mode>/     one folder per deployment mode
 data/config/resources/local/      machine-specific data, not inherited by modes
 data/projects/                    projects
@@ -146,8 +146,8 @@ Inheritance: `system` → `external` → `core` → deployment mode.
 | Decision | Options |
 |---|---|
 | Environments | One Gateway per environment, each running its own mode (`dev`, `test`, `prod`) from the same repo |
-| What goes in `external` | Standard resources owned by engineering and delivered by VCS |
-| What goes in `core` | Shared defaults all environments use |
+| What goes in `external` | Read-only guard rails (for example API-key security levels); never resources the Gateway also generates in `core` |
+| What goes in `core` | Shared config all environments use: tags, UDTs, historian, connections, themes. Committed to git |
 | What goes in each mode | DB connections, device addresses, API keys and other per-environment overrides |
 | What stays in `local` | Certificates and host-specific data; never committed |
 
@@ -216,6 +216,8 @@ Event Streams are project resources that move event data through stages: **Sourc
 
 - **MQTT Engine:** Cirrus Link MQTT Engine (8.3 builds v5.x) connects to third-party brokers. Its **Custom Namespaces** turn plain JSON topics (for example from Zigbee2MQTT or ESPHome) into tags. It also adds MQTT and Sparkplug Event Stream sources. IA lists Cirrus Link modules as supported on Maker Edition.
 - **Enforce read-only at the broker too:** give Ignition's MQTT user a role that can only SUBSCRIBE to sensor topics. With the HiveMQ File RBAC extension, a publish by that user to a device command topic (for example `zigbee2mqtt/+/set`) was dropped and the connection closed. The command never reached subscribers (tested with HiveMQ CE 2026.5). This backs up a "monitoring only" scope independently of Ignition permissions.
+- **Key device publish rights to `${{username}}`, not `${{clientid}}`** (HiveMQ File RBAC). A rule on the client ID let a device user connect with another client ID and publish under another device's prefix; keyed to the username it could not (tested with HiveMQ CE 2026.5).
+- **MQTT Engine with a custom namespace only:** disable the Default namespace's Sparkplug B. Otherwise Engine subscribes to `spBv1.0/#`; a broker that denies that drops the connection, and Engine does not reconnect (Cirrus docs and forum; not yet tested live).
 - **HiveMQ CE:** the Docker image allows anonymous clients (allow-all extension) unless `HIVEMQ_ALLOW_ALL_CLIENTS` is set to anything but `true`. The entrypoint then deletes the extension (verified in the 2026.5 image).
 - An alarm pipeline's **Event Stream Source** block feeds an Event Stream with an Event Listener source (alarm-related; engineering review).
 - Handlers run in order; the Buffer can batch events and has a max queue size (0 = unlimited).

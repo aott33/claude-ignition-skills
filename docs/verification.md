@@ -159,7 +159,7 @@ While building the [home-ignition](https://github.com/aott33/home-ignition) Comp
 | An empty licence `_FILE` crashes the Gateway (NPE in `EnvironmentVariable.resolveEnvVarFile`), in any edition | `docker.md` |
 | A pre-filled `external` folder needs `config-mode.json` (`"parent": "system"`), or the Gateway faults ("exists but is not empty") | `docker.md`, `collections-and-modes.md` |
 | Mounting a collection `:ro` makes the entrypoint's `chown` fail and the container restart-loop | `docker.md` |
-| A partially committed `core` breaks default resources; keep `core` per Gateway, version `external` + mode folders | `docker.md`, `version-control.md` |
+| A partially committed `core` breaks default resources; keep `core` per Gateway, version `external` + mode folders (**superseded** by the third verification: commit `core` minus per-Gateway resources) | `docker.md`, `version-control.md` |
 | First boot rewrites the active mode's `security-properties` | `docker.md`, `api-keys.md` |
 | `core` overrides `external`, so singleton settings that must win go in the mode folder | `collections-and-modes.md` |
 | API keys cannot hold role levels ("cannot be granted via config"); custom `Authenticated/ApiKeys/*` levels work; keys in `local` work | `ignition-security/references/api-keys.md` |
@@ -168,3 +168,21 @@ While building the [home-ignition](https://github.com/aott33/home-ignition) Comp
 | HiveMQ CE Docker image removes allow-all unless `HIVEMQ_ALLOW_ALL_CLIENTS=true`; broker RBAC blocked Ignition from publishing device commands | `ignition-architect/references/system-architectures.md` |
 
 The home stack's own smoke test (`scripts/test-stack.sh`, 30 checks) passed from a clean clone.
+
+## Third verification: home-ignition UDTs and a committed `core` (2026-09-26)
+
+Epic 5 of home-ignition (UDTs, history, alarms, a simulated MQTT Engine provider) on `inductiveautomation/ignition:8.3.9` (trial). Every result was checked from a fresh clone, in the `dev` and `prod` deployment modes. Values, alarms and history were read through a temporary tag-change script on the local test Gateway, because REST has no tag-value read.
+
+| Finding | Where it went |
+|---|---|
+| **Correction:** v8.3.9-1 said to keep `core` out of git. IA's Deployment Modes page and both Version Control Guide examples treat `core` as the committed, shared base. Committing it (whole `config/resources` mount) booted with 0 errors in both modes, provided 8 per-Gateway resources are gitignored | `ignition-config/references/docker.md`, `version-control.md`, `collections-and-modes.md`, `gitignore.sample`, `ignition-config/SKILL.md`, `ignition-architect` |
+| Committing `gateway-network-queue-settings`, `gateway-network-proxy-rules` or `quickstart` causes `PushConflictException: CREATE conflict` on every start; committing `com.inductiveautomation.opcua/one-time` stops the OPC UA module creating its user source and connection | `docker.md` rule 4, `config-diff-review.md` |
+| The Gateway regenerates an empty `tag-type-definition/<provider>` in `core` on every start, which hides UDT definitions placed in `external` | `docker.md` rule 6, `tag-structure.md` |
+| Memory-tag values (including UDT instance overrides) reach the JSON only with the provider's Value Persistence = `Configuration`; otherwise they stay in `valueStore.idb` | `docker.md` rule 9, `rest-api.md`, `tag-structure.md` |
+| With `core` in the working tree, `docker compose down -v` does not reset config; `git clean -fdX config/resources` is needed, or first boot conflicts and adds a `temp_0` identity provider | `docker.md` rule 10 |
+| A fresh Gateway has no historian provider; creating `CoreHistorian` over REST (body recorded) | `rest-api.md`, `docker.md` rule 11 |
+| Tag import needs `Content-Type: application/octet-stream` and writes to `core`; no REST route reads tag values or active alarms | `rest-api.md` |
+| UDT inheritance (`typeId`), reference members via a parameter, expression-bound setpoints and delays, parameter-bound priority, instance overrides with `tagType`, `.Timestamp` for last-seen | `ignition-architect/references/tag-structure.md` |
+| HiveMQ File RBAC: key device publish rights to `${{username}}`; a `${{clientid}}` rule allowed publishing under another device's prefix | `system-architectures.md` |
+
+The home stack's `scripts/test-stack.sh` passed in both modes. It now also fails if a tracked config file contains a password or an Embedded secret.
