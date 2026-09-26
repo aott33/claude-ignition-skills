@@ -1,5 +1,7 @@
 # claude-ignition-skills
 
+> **Disclaimer: still being tested.** These skills are in the middle of real-world testing to prove how reliably they work with Ignition. They are being checked by building a real Ignition 8.3 project against live Gateways; findings so far are in [docs/verification.md](docs/verification.md). Expect corrections between releases. Review everything the skills produce before using it, and never apply it to a production or safety-related system without engineering review.
+
 Claude Code skills for **Ignition 8.3 SCADA/MES** projects, organized by role and grounded in ISA standards. No framework to install: copy the skills, open your project in Claude Code, and build.
 
 > **On Ignition 8.1?** The 8.1 skills are frozen on the [`release/8.1`](https://github.com/aott33/claude-ignition-skills/tree/release/8.1) branch (tag [`v8.1-final`](https://github.com/aott33/claude-ignition-skills/releases/tag/v8.1-final)). `main` targets Ignition 8.3.x. What changed and why is in [docs/upgrade-notes.md](docs/upgrade-notes.md).
