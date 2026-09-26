@@ -98,7 +98,7 @@ claude-ignition-skills/
 ├── .claude/skills/
 │   ├── ignition-dev/             # SKILL.md + references/ (Jython, validation, parallel dev, 8.3 API changes)
 │   ├── ignition-architect/       # SKILL.md + references/ (tags, architectures, ISA standards)
-│   ├── ignition-ui/              # SKILL.md + references/ (components, styles)
+│   ├── ignition-ui/              # SKILL.md + references/ (components, styles, icon libraries)
 │   ├── ignition-plan/            # SKILL.md + references/
 │   ├── ignition-review/          # SKILL.md + references/ (manual only)
 │   ├── ignition-config/          # knowledge: collections, modes, file layout, git, REST API

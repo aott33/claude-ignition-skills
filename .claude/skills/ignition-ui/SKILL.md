@@ -55,6 +55,7 @@ Follow the ISA-95 equipment hierarchy: `Site Overview -> Area Overview -> Line/C
 - **Themes** are selected by `session.props.theme`. Base themes `light` and `dark` are system resources and cannot be altered; override them with an `overrides-light` or `overrides-dark` theme resource. Derived themes `light-warm`, `light-cool`, `dark-warm`, `dark-cool` can be edited, but then stop receiving IA updates, so create a custom theme instead.
 - **Custom themes** are Gateway config, not project resources: `data/config/resources/core/com.inductiveautomation.perspective/themes/<theme>/` with `config.json`, `resource.json` and an entry point (default `index.css`). After editing on disk, run a config scan (see View Propagation).
 - Put ISA-101 color variables (`--isa-background`, `--isa-fault`, ...) in a custom or overrides theme so style classes reference `var(--...)`.
+- **Silent style failures:** a style class must be a leaf, because a class folder that also holds child classes drops the children (live 8.3.9). Classes emit only a fixed property list, so `gap`, `display`, `width`, `height` and `min-height` are dropped (observed in the 8.3.9 module); use the Advanced Stylesheet. See `references/perspective-styles.md`.
 
 ### Baseline ISA-101 Style Classes
 
@@ -114,7 +115,7 @@ Details and design rules for each: `references/perspective-components.md`.
 ## View Structure and Components
 
 - Views are `view.json` files (each with a `resource.json` beside it) in the project folder under `data/projects/<project>/`. Every view has `params` (its public contract), `root` (a container) and optional `custom`.
-- Copy each component's exact `type` string from a view saved by your 8.3 Designer; do not guess type strings.
+- Copy each component's exact `type` string from a view saved by your 8.3 Designer, or read it and the prop schema from the Perspective module's `ia.components.json`; do not guess type strings.
 - Layout: Flex Container (default, responsive), Breakpoint Container (monitor + tablet + phone), Coordinate Container (P&ID graphics), Tab Container (Status | Trends | Alarms | Config).
 - Reuse: Embedded View (`props.path` + `props.params`) for faceplates; Flex Repeater (`props.path` + `props.instances`) for data-driven card lists; drop configuration to bind a faceplate to a dragged UDT.
 - Operator input: Button (44 x 44 px minimum touch target), Numeric Entry Field with min/max and a confirm popup for critical setpoints, Multi-State Button for Hand/Off/Auto, Form for multi-field entry.
@@ -143,12 +144,13 @@ Every design states the parameter contract (e.g. `equipmentId: int`, `tagBasePat
 
 ## Validation
 
-A view is not complete until: LSP zero errors, `ignition-lint` pass rate > 90%, a project scan with no errors, Designer check with live tags, and optionally Playwright Perspective tests. See `../ignition-dev/references/validation-workflow.md`.
+A view is not complete until: LSP zero errors, `ignition-lint` pass rate > 90%, a project scan with no errors, Designer check with live tags, and optionally Playwright Perspective tests. On a test Gateway, also run the headless render check with screenshots (Stage 4b). See `../ignition-dev/references/validation-workflow.md`.
 
 ## Reference Docs
 
 - `references/perspective-components.md` - component reference, 8.3 components, JSON patterns
 - `references/perspective-styles.md` - themes, CSS variables, style classes
+- `references/icon-libraries.md` - custom icon libraries, icon colouring, blank-icon pitfalls
 - `../ignition-architect/references/isa-standards.md` - ISA-101 and ISA-18.2 detail
 - `../ignition-architect/references/tag-structure.md` - UDT patterns for parameter-driven views
 - `../ignition-dev/references/validation-workflow.md` - validating views before delivery
