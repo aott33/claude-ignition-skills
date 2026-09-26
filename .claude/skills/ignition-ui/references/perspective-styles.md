@@ -163,6 +163,8 @@ OpenBridge ([openbridge.no](https://www.openbridge.no/)) is a maritime and indus
 - icons: SVG strings in `src/icons/*.ts`;
 - symbols: `src/automation/`.
 
+The public Storybook ([openbridge-storybook.web.app](https://openbridge-storybook.web.app/)) shows every component and state (about 2,000 stories, 182 under Automation). Use it as the visual reference when rebuilding symbols as Perspective views. The Figma community files are the design source but block automated access.
+
 Licensing:
 - Since 1.0.0, each release is AGPL-3.0-only for 180 days and then also Apache-2.0. JIP members can get a commercial licence earlier. Version 1.0.1 declares Apache-2.0.
 - Take assets only from a release you may use, keep its licence notice, and keep design-system assets out of anything you redistribute (for example an Ignition Exchange resource) unless the licence allows it.
